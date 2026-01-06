@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>School Student Map (Google Maps)</title>
+
+  <style>
+    :root{
+      --bg:#0b1220; --muted:#a7b4d6; --text:#e9eeff; --border:rgba(255,255,255,.10);
+      --shadow:0 12px 40px rgba(0,0,0,.40);
+      --radius:18px;
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; overflow:hidden; }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--text); }
+
+    .app{ height:100vh; overflow:hidden; }
+    .main{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr minmax(260px, 340px);
+      min-height:0;
+    }
+
+    .map-wrap{ position:relative; min-height:0; overflow:hidden; }
+    #map{ height:100%; width:100%; }
+
+    /* Overlay controls */
+    .map-ui{
+      position:absolute;
+      top:12px; left:12px; right:12px;
+      z-index:10;
+      pointer-events:none;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .ui-row{ display:flex; align-items:center; gap:10px; pointer-events:none; }
+    .ui-row.center{ justify-content:center; }
+    .ui-row.space{ justify-content:space-between; }
+
+    .badge, .control, .btn{
+      pointer-events:auto;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(15, 26, 51, .70);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+    .badge{
+      padding:7px 10px;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .control{
+      display:flex; gap:8px; align-items:center;
+      padding:7px 10px;
+      font-size:12px;
+      color:var(--muted);
+      position:relative;
+    }
+    .control input{
+      width:110px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+    }
+    .control.search input{ width:340px; }
+
+    .btn{
+      padding:8px 12px;
+      color:var(--text);
+      cursor:pointer;
+    }
+    .btn:hover{ background:rgba(255,255,255,.10); }
+
+    /* Sidebar */
+    .side{
+      border-left:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      padding:14px;
+      min-height:0;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .side h2{ margin:0 0 10px; font-size:14px; color:var(--muted); font-weight:600; flex:0 0 auto; }
+    .list{
+      flex:1 1 auto;
+      min-height:0;
+      overflow:auto;
+      padding-bottom:10px;
+      overscroll-behavior: contain;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .rowcard{
+      display:flex; gap:10px; align-items:center;
+      padding:10px; border:1px solid var(--border); background:rgba(255,255,255,.04);
+      border-radius:var(--radius);
+    }
+    .avatar{
+      width:44px; height:44px; border-radius:14px; object-fit:cover; background:rgba(255,255,255,.08);
+      flex:0 0 auto;
+    }
+    .meta{ min-width:0; }
+    .name{ font-weight:700; font-size:13px; line-height:1.1; margin:0; }
+    .sub{ margin:4px 0 0; font-size:12px; color:var(--muted); }
+
+    /* ✅ Custom card marker (OverlayView) */
+    .gm-student{
+      position:absolute;
+      transform: translate(-50%, calc(-100% - 14px));
+      user-select:none;
+      pointer-events:none; /* allow map drag except the bubble */
+    }
+    .gm-student .bubble{
+      pointer-events:auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(17,28,58,.92);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      width: 190px;
+      max-width: 220px;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      cursor:pointer;
+    }
+    .gm-student .bubble:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 14px 44px rgba(0,0,0,.48);
+    }
+    .gm-student img{
+      width:42px; height:42px;
+      border-radius:14px;
+      object-fit:cover;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .gm-student .t1{
+      margin:0;
+      font-weight:800;
+      font-size:13px;
+      line-height:1.15;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+    }
+    .gm-student .t2{
+      margin:4px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+      display:none; /* compact by default */
+    }
+
+    .gm-student .stem{
+      width:14px; height:14px;
+      background:rgba(17,28,58,.92);
+      border:1px solid rgba(255,255,255,.12);
+      border-top:none; border-left:none;
+      transform: translate(88px, -7px) rotate(45deg);
+      border-radius:3px;
+      pointer-events:none;
+    }
+    .gm-student .dot{
+      width:12px; height:12px; border-radius:50%;
+      background:#ffffff;
+      box-shadow:0 0 0 6px rgba(255,255,255,.18);
+      transform: translate(89px, -1px);
+      border:1px solid rgba(0,0,0,.25);
+      pointer-events:none;
+    }
+
+    .gm-student.expanded .t2{ display:block; }
+    .gm-student.selected .bubble{
+      border-color: rgba(255,255,255,.28);
+      box-shadow: 0 16px 52px rgba(0,0,0,.55);
+    }
+
+    @media (max-width: 900px){
+      .main{
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 0.9fr;
+      }
+      .side{ border-left:none; border-top:1px solid var(--border); }
+      .control.search input{ width:220px; }
+      .gm-student .bubble{ width:170px; }
+      .gm-student .stem{ transform: translate(78px, -7px) rotate(45deg); }
+      .gm-student .dot{ transform: translate(79px, -1px); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="main">
+      <div class="map-wrap">
+        <div id="map"></div>
+
+        <div class="map-ui">
+          <div class="ui-row center">
+            <div class="control search">
+              <input id="searchInput" type="text" placeholder="Search a place…" autocomplete="off" />
+              <button id="clearBtn" class="btn" title="Clear markers">Clear</button>
+            </div>
+          </div>
+
+          <div class="ui-row space">
+            <div class="badge" id="status">Loading sheet…</div>
+
+            <div style="display:flex; gap:10px; align-items:center; pointer-events:none;">
+              <div class="control">
+                Students:
+                <input id="countInput" type="number" min="1" max="200" value="10" />
+              </div>
+
+              <div class="control">
+                Radius (km):
+                <input id="radiusInput" type="number" min="0" max="50" step="0.1" value="0" />
+                <span style="opacity:.85">(0=all)</span>
+              </div>
+
+              <button id="applyBtn" class="btn">Apply</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <h2 id="sideTitle">Nearby students will appear here</h2>
+        <div id="list" class="list"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    /** ===== CONFIG ===== */
+    const DATA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpSVxTGzDfwqzVE6euHpVY3oH_UzoJL8dnZD0TLwVblcOg85NWg4oWQHSpQPT67bNGXNinI9rFmqd7/pub?gid=413833735&single=true&output=csv";
+    const DUPLICATE_SPREAD_METERS = 18;
+    const MAX_SHOW = 200;
+
+    /** ===== STATE ===== */
+    let students = [];
+    let map;
+    let placeMarker = null;
+    let radiusCircle = null;
+    let lastCenter = null;
+
+    const studentOverlays = [];
+
+    /** ===== HELPERS ===== */
+    function setStatus(msg){ document.getElementById("status").textContent = msg; }
+    function safeText(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
+
+    function parseCSV(text){
+      const rows = [];
+      let row = [], field = "", inQuotes = false;
+      for (let i = 0; i < text.length; i++){
+        const c = text[i], next = text[i+1];
+        if (c === '"'){
+          if (inQuotes && next === '"'){ field += '"'; i++; }
+          else inQuotes = !inQuotes;
+          continue;
+        }
+        if (!inQuotes && (c === ',' || c === '\n' || c === '\r')){
+          row.push(field.trim()); field = "";
+          if (c === '\n'){
+            if (row.length > 1 || row[0] !== "") rows.push(row);
+            row = [];
+          }
+          continue;
+        }
+        field += c;
+      }
+      if (field.length || row.length){
+        row.push(field.trim());
+        if (row.length > 1 || row[0] !== "") rows.push(row);
+      }
+      return rows;
+    }
+
+    function distanceKm(lat1, lon1, lat2, lon2){
+      const R = 6371;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    function driveToImgUrl(url){
+      if (!url) return "";
+      if (url.includes("googleusercontent.com")) return url;
+      const m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      const id = (m1 && m1[1]) || (m2 && m2[1]) || "";
+      return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+    }
+
+    function metersToDegLat(m){ return m / 111320; }
+    function metersToDegLng(m, latDeg){
+      const latRad = latDeg * Math.PI / 180;
+      const metersPerDeg = 111320 * Math.cos(latRad);
+      return metersPerDeg ? (m / metersPerDeg) : 0;
+    }
+    function offsetDuplicate(lat, lng, idx){
+      if (idx === 0) return {lat, lng};
+      const angle = idx * 2.399963229728653;
+      const rMeters = DUPLICATE_SPREAD_METERS * Math.sqrt(idx);
+      const dx = rMeters * Math.cos(angle);
+      const dy = rMeters * Math.sin(angle);
+      return {
+        lat: lat + metersToDegLat(dy),
+        lng: lng + metersToDegLng(dx, lat)
+      };
+    }
+
+    function clearStudentOverlays(){
+      for (const o of studentOverlays) o.setMap(null);
+      studentOverlays.length = 0;
+    }
+
+    function renderSidebar(list, center){
+      const title = document.getElementById("sideTitle");
+      const el = document.getElementById("list");
+      el.innerHTML = "";
+
+      if (!center){
+        title.textContent = "Nearby students will appear here";
+        return;
+      }
+
+      const radiusKmVal = parseFloat(document.getElementById("radiusInput").value || "0");
+      const radiusTxt = radiusKmVal > 0 ? ` within ${radiusKmVal} km` : "";
+      title.textContent = `Showing ${list.length} students${radiusTxt}`;
+
+      for (const s of list){
+        const card = document.createElement("div");
+        card.className = "rowcard";
+        const img = driveToImgUrl(s.photo);
+        card.innerHTML = `
+          <img class="avatar" src="${img}" alt="" onerror="this.style.display='none'"/>
+          <div class="meta">
+            <p class="name">${safeText(s.name)}</p>
+            <p class="sub">Class ${safeText(s.class)} • Section ${safeText(s.section)}</p>
+            <p class="sub">${s._dist.toFixed(2)} km away</p>
+          </div>
+        `;
+        el.appendChild(card);
+      }
+    }
+
+    function drawRadius(center, radiusKmVal){
+      if (radiusCircle) radiusCircle.setMap(null);
+      radiusCircle = null;
+      if (radiusKmVal > 0){
+        radiusCircle = new google.maps.Circle({
+          center,
+          radius: radiusKmVal * 1000,
+          strokeOpacity: 1,
+          strokeWeight: 2,
+          fillOpacity: 0.08,
+          map
+        });
+      }
+    }
+
+    /** ===== LOAD STUDENTS ===== */
+    async function loadStudents(){
+      setStatus("Loading sheet…");
+      const res = await fetch(DATA_CSV_URL);
+      if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
+      const text = await res.text();
+      if (text.trim().startsWith("<!DOCTYPE html") || text.includes("<html")){
+        throw new Error("URL returned HTML (not CSV). Use the published CSV link.");
+      }
+
+      const rows = parseCSV(text);
+      const out = [];
+      for (const r of rows){
+        if (r.length < 6) continue;
+        const lat = parseFloat(r[4]);
+        const lon = parseFloat(r[5]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        out.push({ name:r[0], class:r[1], section:r[2], photo:r[3], lat, lon });
+      }
+      students = out;
+      setStatus(`Loaded ${students.length} students • Search or click map`);
+      return out;
+    }
+
+    /** ===== GOOGLE MAPS INIT ===== */
+    async function initApp(){
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 27.6094, lng: 75.1399 }, // Sikar-ish default (safe)
+        zoom: 12,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
+
+      /** ✅ Define overlay AFTER Google is ready (fixes “no markers after click”) */
+      class StudentOverlay extends google.maps.OverlayView {
+        constructor(position, student){
+          super();
+          this.position = new google.maps.LatLng(position.lat, position.lng);
+          this.student = student;
+          this.div = null;
+        }
+
+        onAdd(){
+          const div = document.createElement("div");
+          div.className = "gm-student";
+
+          const img = driveToImgUrl(this.student.photo);
+          div.innerHTML = `
+            <div class="bubble" role="button">
+              <img src="${img}" alt="" onerror="this.style.display='none'">
+              <div>
+                <p class="t1">${safeText(this.student.name)}</p>
+                <p class="t2">Class ${safeText(this.student.class)} • Sec ${safeText(this.student.section)}</p>
+              </div>
+            </div>
+            <div class="stem"></div>
+            <div class="dot"></div>
+          `;
+
+          // Click to expand/collapse + bring to front
+          div.querySelector(".bubble").addEventListener("click", (e) => {
+            e.stopPropagation();
+
+            // collapse all others
+            for (const o of studentOverlays){
+              if (o.div){
+                o.div.classList.remove("expanded","selected");
+              }
+            }
+
+            const isExpanded = div.classList.contains("expanded");
+            if (isExpanded){
+              div.classList.remove("expanded","selected");
+            } else {
+              div.classList.add("expanded","selected");
+            }
+
+            // keep selected above
+            div.style.zIndex = "999999";
+          });
+
+          this.div = div;
+
+          // ✅ Use overlayMouseTarget so it always shows + can be clicked
+          const panes = this.getPanes();
+          panes.overlayMouseTarget.appendChild(div);
+        }
+
+        draw(){
+          if (!this.div) return;
+          const proj = this.getProjection();
+          if (!proj) return;
+
+          const point = proj.fromLatLngToDivPixel(this.position);
+          if (!point) return;
+
+          this.div.style.left = point.x + "px";
+          this.div.style.top  = point.y + "px";
+          // default stacking by y (lower on screen above)
+          this.div.style.zIndex = this.div.style.zIndex || String(100000 + Math.round(point.y));
+        }
+
+        onRemove(){
+          if (this.div){
+            this.div.remove();
+            this.div = null;
+          }
+        }
+      }
+
+      function runSearch(center){
+        if (!students.length) return;
+        lastCenter = center;
+
+        // Search center marker
+        if (placeMarker) placeMarker.setMap(null);
+        placeMarker = new google.maps.Marker({
+          position: center,
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillOpacity: 0.25,
+            strokeOpacity: 1,
+            strokeWeight: 2
+          }
+        });
+
+        const n = Math.max(1, Math.min(MAX_SHOW, parseInt(document.getElementById("countInput").value || "10", 10)));
+        const radiusKmVal = Math.max(0, parseFloat(document.getElementById("radiusInput").value || "0"));
+        drawRadius(center, radiusKmVal);
+
+        let list = students.map(s => ({
+          ...s,
+          _dist: distanceKm(center.lat, center.lng, s.lat, s.lon)
+        }));
+
+        if (radiusKmVal > 0) list = list.filter(s => s._dist <= radiusKmVal);
+        list.sort((a,b) => a._dist - b._dist);
+        list = list.slice(0, n);
+
+        clearStudentOverlays();
+
+        // group identical coords
+        const groups = new Map();
+        for (const s of list){
+          const key = `${s.lat.toFixed(6)},${s.lon.toFixed(6)}`;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(s);
+        }
+
+        for (const arr of groups.values()){
+          for (let i = 0; i < arr.length; i++){
+            const s = arr[i];
+            const pos = offsetDuplicate(s.lat, s.lon, i);
+            const overlay = new StudentOverlay(pos, s);
+            overlay.setMap(map);
+            studentOverlays.push(overlay);
+          }
+        }
+
+        renderSidebar(list, center);
+      }
+
+      // Click map -> show nearest students
+      map.addListener("click", (e) => {
+        // collapse expanded markers on new click
+        for (const o of studentOverlays){
+          if (o.div) o.div.classList.remove("expanded","selected");
+        }
+        runSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+
+      document.getElementById("applyBtn").addEventListener("click", () => {
+        if (lastCenter) runSearch(lastCenter);
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        clearStudentOverlays();
+        if (placeMarker) placeMarker.setMap(null);
+        placeMarker = null;
+        if (radiusCircle) radiusCircle.setMap(null);
+        radiusCircle = null;
+        lastCenter = null;
+        renderSidebar([], null);
+      });
+
+      // Google Places Autocomplete
+      const input = document.getElementById("searchInput");
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["geometry", "name", "formatted_address"],
+        componentRestrictions: { country: "in" }
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place?.geometry?.location){
+          setStatus("No result. Try a different search.");
+          return;
+        }
+        const loc = place.geometry.location;
+        const center = { lat: loc.lat(), lng: loc.lng() };
+        map.panTo(center);
+        map.setZoom(15);
+        runSearch(center);
+      });
+
+      // Load data + fit bounds
+      const data = await loadStudents();
+      if (!data.length){
+        setStatus("No valid rows found (check Latitude/Longitude columns).");
+        return;
+      }
+      const bounds = new google.maps.LatLngBounds();
+      for (const s of data) bounds.extend({ lat: s.lat, lng: s.lon });
+      map.fitBounds(bounds);
+    }
+
+    window.initApp = initApp;
+  </script>
+
+  <!-- Google Maps + Places -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC5VODPbqv2q3QGfv9DAtW7VX8_gQHvWlo&libraries=places&callback=initApp"
+    async
+    defer
+  ></script>
+</body>
+</html>
