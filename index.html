@@ -13,7 +13,12 @@
     }
     *{ box-sizing:border-box; }
     html, body{ height:100%; overflow:hidden; }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--text); }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
 
     .app{ height:100vh; overflow:hidden; }
     .main{
@@ -38,7 +43,7 @@
     .ui-row.center{ justify-content:center; }
     .ui-row.space{ justify-content:space-between; }
 
-    .badge, .control, .btn{
+    .badge, .control, .btn, .statbox{
       pointer-events:auto;
       border:1px solid var(--border);
       border-radius:999px;
@@ -57,7 +62,6 @@
       padding:7px 10px;
       font-size:12px;
       color:var(--muted);
-      position:relative;
     }
     .control input{
       width:110px;
@@ -69,13 +73,35 @@
       outline:none;
     }
     .control.search input{ width:340px; }
-
     .btn{
       padding:8px 12px;
       color:var(--text);
       cursor:pointer;
     }
     .btn:hover{ background:rgba(255,255,255,.10); }
+
+    /* Bottom-left stats */
+    .stats-panel{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      z-index:10;
+      pointer-events:none;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      max-width:60vw;
+    }
+    .statbox{
+      pointer-events:none;
+      padding:8px 10px;
+      border-radius:14px;
+      font-size:12px;
+      color:var(--text);
+      background:rgba(15, 26, 51, .72);
+      white-space:nowrap;
+    }
+    .statbox span{ color:var(--muted); font-weight:800; }
 
     /* Sidebar */
     .side{
@@ -87,7 +113,13 @@
       display:flex;
       flex-direction:column;
     }
-    .side h2{ margin:0 0 10px; font-size:14px; color:var(--muted); font-weight:600; flex:0 0 auto; }
+    .side h2{
+      margin:0 0 10px;
+      font-size:14px;
+      color:var(--muted);
+      font-weight:700;
+      flex:0 0 auto;
+    }
     .list{
       flex:1 1 auto;
       min-height:0;
@@ -99,97 +131,110 @@
       gap:10px;
     }
     .rowcard{
-      display:flex; gap:10px; align-items:center;
-      padding:10px; border:1px solid var(--border); background:rgba(255,255,255,.04);
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
       border-radius:var(--radius);
     }
-    .avatar{
-      width:44px; height:44px; border-radius:14px; object-fit:cover; background:rgba(255,255,255,.08);
+    .rankPill{
+      width:28px; height:28px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.08);
+      font-weight:900;
+      font-size:12px;
       flex:0 0 auto;
     }
     .meta{ min-width:0; }
-    .name{ font-weight:700; font-size:13px; line-height:1.1; margin:0; }
+    .name{ font-weight:900; font-size:13px; line-height:1.1; margin:0; }
     .sub{ margin:4px 0 0; font-size:12px; color:var(--muted); }
 
-    /* ✅ Custom card marker (OverlayView) */
+    /* ===== Custom Overlay Marker ===== */
     .gm-student{
       position:absolute;
-      transform: translate(-50%, calc(-100% - 14px));
+      left:0; top:0;
+      pointer-events:none;
       user-select:none;
-      pointer-events:none; /* allow map drag except the bubble */
     }
-    .gm-student .bubble{
+
+    /* Anchor the PIN TIP at the exact coordinate */
+    .gm-pin-wrap{
+      position:absolute;
+      left:0; top:0;
+      transform: translate(-50%, -100%);
       pointer-events:auto;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:10px;
+      cursor:pointer;
+    }
+
+    /* ✅ Wider pins + ✅ no shadow */
+    .pin-svg{
+      width:34px;        /* was 28px */
+      height:44px;       /* keep proportion */
+      filter:none;       /* removed shadow */
+      display:block;
+    }
+
+    /* Card */
+    .gm-card{
+      pointer-events:auto;
+      position:absolute;
+      left:0;
+      top:-50px;
+      transform: translate(-50%, -100%);
+      width:230px;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.12);
       background:rgba(17,28,58,.92);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
-      width: 190px;
-      max-width: 220px;
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-      cursor:pointer;
+      padding:10px 12px;
+      display:none;
+      cursor:default;
     }
-    .gm-student .bubble:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 14px 44px rgba(0,0,0,.48);
-    }
-    .gm-student img{
-      width:42px; height:42px;
-      border-radius:14px;
-      object-fit:cover;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.10);
-      flex:0 0 auto;
-    }
-    .gm-student .t1{
+    .gm-card .t1{
       margin:0;
-      font-weight:800;
+      font-weight:900;
       font-size:13px;
       line-height:1.15;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width: 150px;
     }
-    .gm-student .t2{
-      margin:4px 0 0;
+    .gm-card .t2{
+      margin:6px 0 0;
       font-size:12px;
       color:var(--muted);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width: 150px;
-      display:none; /* compact by default */
     }
+    .gm-card .father{
+      margin:8px 0 0;
+      font-size:12px;
+      color:var(--text);
+      border-top:1px solid rgba(255,255,255,.10);
+      padding-top:8px;
+      display:none;
+    }
+    .gm-card:hover .father{ display:block; }
+    .gm-student.selected .gm-card{ display:block; }
 
-    .gm-student .stem{
-      width:14px; height:14px;
+    .gm-stem{
+      position:absolute;
+      left:0;
+      top:-38px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      width:10px;
+      height:10px;
       background:rgba(17,28,58,.92);
-      border:1px solid rgba(255,255,255,.12);
-      border-top:none; border-left:none;
-      transform: translate(88px, -7px) rotate(45deg);
-      border-radius:3px;
+      border-right:1px solid rgba(255,255,255,.12);
+      border-bottom:1px solid rgba(255,255,255,.12);
+      border-radius:2px;
+      display:none;
       pointer-events:none;
     }
-    .gm-student .dot{
-      width:12px; height:12px; border-radius:50%;
-      background:#ffffff;
-      box-shadow:0 0 0 6px rgba(255,255,255,.18);
-      transform: translate(89px, -1px);
-      border:1px solid rgba(0,0,0,.25);
-      pointer-events:none;
-    }
-
-    .gm-student.expanded .t2{ display:block; }
-    .gm-student.selected .bubble{
-      border-color: rgba(255,255,255,.28);
-      box-shadow: 0 16px 52px rgba(0,0,0,.55);
-    }
+    .gm-student.selected .gm-stem{ display:block; }
 
     @media (max-width: 900px){
       .main{
@@ -198,9 +243,8 @@
       }
       .side{ border-left:none; border-top:1px solid var(--border); }
       .control.search input{ width:220px; }
-      .gm-student .bubble{ width:170px; }
-      .gm-student .stem{ transform: translate(78px, -7px) rotate(45deg); }
-      .gm-student .dot{ transform: translate(79px, -1px); }
+      .gm-card{ width:210px; }
+      .pin-svg{ width:32px; height:42px; }
     }
   </style>
 </head>
@@ -215,7 +259,7 @@
           <div class="ui-row center">
             <div class="control search">
               <input id="searchInput" type="text" placeholder="Search a place…" autocomplete="off" />
-              <button id="clearBtn" class="btn" title="Clear markers">Clear</button>
+              <button id="clearBtn" class="btn" title="Clear pins">Clear</button>
             </div>
           </div>
 
@@ -238,6 +282,15 @@
             </div>
           </div>
         </div>
+
+        <!-- Bottom-left stats -->
+        <div class="stats-panel" aria-label="Nearby stats">
+          <div class="statbox" id="stat100"><span>100m:</span> -</div>
+          <div class="statbox" id="stat500"><span>500m:</span> -</div>
+          <div class="statbox" id="stat1k"><span>1km:</span> -</div>
+          <div class="statbox" id="stat2k"><span>2km:</span> -</div>
+          <div class="statbox" id="stat5k"><span>5km:</span> -</div>
+        </div>
       </div>
 
       <aside class="side">
@@ -248,21 +301,23 @@
   </div>
 
   <script>
-    /** ===== CONFIG ===== */
+    /**
+     * Sheet columns:
+     * A Name, B Class, C Section, D Photo (not used on pins), E Lat, F Lng, G Father
+     */
     const DATA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpSVxTGzDfwqzVE6euHpVY3oH_UzoJL8dnZD0TLwVblcOg85NWg4oWQHSpQPT67bNGXNinI9rFmqd7/pub?gid=413833735&single=true&output=csv";
-    const DUPLICATE_SPREAD_METERS = 18;
-    const MAX_SHOW = 200;
+    const MAX_SHOW = 2000;
 
-    /** ===== STATE ===== */
+    // exact coordinates
+    const SPREAD_DUPLICATES = false;
+
     let students = [];
     let map;
     let placeMarker = null;
     let radiusCircle = null;
     let lastCenter = null;
-
     const studentOverlays = [];
 
-    /** ===== HELPERS ===== */
     function setStatus(msg){ document.getElementById("status").textContent = msg; }
     function safeText(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
 
@@ -305,66 +360,9 @@
       return 2 * R * Math.asin(Math.sqrt(a));
     }
 
-    function driveToImgUrl(url){
-      if (!url) return "";
-      if (url.includes("googleusercontent.com")) return url;
-      const m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      const id = (m1 && m1[1]) || (m2 && m2[1]) || "";
-      return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
-    }
-
-    function metersToDegLat(m){ return m / 111320; }
-    function metersToDegLng(m, latDeg){
-      const latRad = latDeg * Math.PI / 180;
-      const metersPerDeg = 111320 * Math.cos(latRad);
-      return metersPerDeg ? (m / metersPerDeg) : 0;
-    }
-    function offsetDuplicate(lat, lng, idx){
-      if (idx === 0) return {lat, lng};
-      const angle = idx * 2.399963229728653;
-      const rMeters = DUPLICATE_SPREAD_METERS * Math.sqrt(idx);
-      const dx = rMeters * Math.cos(angle);
-      const dy = rMeters * Math.sin(angle);
-      return {
-        lat: lat + metersToDegLat(dy),
-        lng: lng + metersToDegLng(dx, lat)
-      };
-    }
-
     function clearStudentOverlays(){
       for (const o of studentOverlays) o.setMap(null);
       studentOverlays.length = 0;
-    }
-
-    function renderSidebar(list, center){
-      const title = document.getElementById("sideTitle");
-      const el = document.getElementById("list");
-      el.innerHTML = "";
-
-      if (!center){
-        title.textContent = "Nearby students will appear here";
-        return;
-      }
-
-      const radiusKmVal = parseFloat(document.getElementById("radiusInput").value || "0");
-      const radiusTxt = radiusKmVal > 0 ? ` within ${radiusKmVal} km` : "";
-      title.textContent = `Showing ${list.length} students${radiusTxt}`;
-
-      for (const s of list){
-        const card = document.createElement("div");
-        card.className = "rowcard";
-        const img = driveToImgUrl(s.photo);
-        card.innerHTML = `
-          <img class="avatar" src="${img}" alt="" onerror="this.style.display='none'"/>
-          <div class="meta">
-            <p class="name">${safeText(s.name)}</p>
-            <p class="sub">Class ${safeText(s.class)} • Section ${safeText(s.section)}</p>
-            <p class="sub">${s._dist.toFixed(2)} km away</p>
-          </div>
-        `;
-        el.appendChild(card);
-      }
     }
 
     function drawRadius(center, radiusKmVal){
@@ -382,46 +380,119 @@
       }
     }
 
-    /** ===== LOAD STUDENTS ===== */
+    function updateStats(center){
+      const el100 = document.getElementById("stat100");
+      const el500 = document.getElementById("stat500");
+      const el1k  = document.getElementById("stat1k");
+      const el2k  = document.getElementById("stat2k");
+      const el5k  = document.getElementById("stat5k");
+
+      if (!center || !students.length){
+        el100.innerHTML = `<span>100m:</span> -`;
+        el500.innerHTML = `<span>500m:</span> -`;
+        el1k.innerHTML  = `<span>1km:</span> -`;
+        el2k.innerHTML  = `<span>2km:</span> -`;
+        el5k.innerHTML  = `<span>5km:</span> -`;
+        return;
+      }
+
+      let c100=0, c500=0, c1=0, c2=0, c5=0;
+      for (const s of students){
+        const d = distanceKm(center.lat, center.lng, s.lat, s.lon);
+        if (d <= 0.1) c100++;
+        if (d <= 0.5) c500++;
+        if (d <= 1.0) c1++;
+        if (d <= 2.0) c2++;
+        if (d <= 5.0) c5++;
+      }
+
+      el100.innerHTML = `<span>100m:</span> ${c100}`;
+      el500.innerHTML = `<span>500m:</span> ${c500}`;
+      el1k.innerHTML  = `<span>1km:</span> ${c1}`;
+      el2k.innerHTML  = `<span>2km:</span> ${c2}`;
+      el5k.innerHTML  = `<span>5km:</span> ${c5}`;
+    }
+
+    function renderSidebar(list, totalInRange, center){
+      const title = document.getElementById("sideTitle");
+      const el = document.getElementById("list");
+      el.innerHTML = "";
+
+      if (!center){
+        title.textContent = "Nearby students will appear here";
+        return;
+      }
+
+      const radiusKmVal = Math.max(0, parseFloat(document.getElementById("radiusInput").value || "0"));
+      const suffix = radiusKmVal > 0 ? ` within ${radiusKmVal} km` : ` (all)`;
+      title.textContent = `Showing ${list.length} students out of ${totalInRange}${suffix}`;
+
+      for (const s of list){
+        const card = document.createElement("div");
+        card.className = "rowcard";
+        card.innerHTML = `
+          <div class="rankPill">${s._rank}</div>
+          <div class="meta">
+            <p class="name">${safeText(s.name)}</p>
+            <p class="sub">Class ${safeText(s.class)} • Section ${safeText(s.section)}</p>
+            <p class="sub">Father: ${safeText(s.father || "-")}</p>
+            <p class="sub">${s._dist.toFixed(2)} km away</p>
+          </div>
+        `;
+        el.appendChild(card);
+      }
+    }
+
     async function loadStudents(){
       setStatus("Loading sheet…");
       const res = await fetch(DATA_CSV_URL);
       if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
       const text = await res.text();
+
       if (text.trim().startsWith("<!DOCTYPE html") || text.includes("<html")){
-        throw new Error("URL returned HTML (not CSV). Use the published CSV link.");
+        throw new Error("URL returned HTML (not CSV). Use a published CSV link.");
       }
 
       const rows = parseCSV(text);
       const out = [];
+
       for (const r of rows){
         if (r.length < 6) continue;
         const lat = parseFloat(r[4]);
         const lon = parseFloat(r[5]);
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-        out.push({ name:r[0], class:r[1], section:r[2], photo:r[3], lat, lon });
+
+        out.push({
+          name: r[0],
+          class: r[1],
+          section: r[2],
+          photo: r[3],
+          lat, lon,
+          father: r[6] || ""
+        });
       }
+
       students = out;
       setStatus(`Loaded ${students.length} students • Search or click map`);
+      updateStats(null);
       return out;
     }
 
-    /** ===== GOOGLE MAPS INIT ===== */
     async function initApp(){
       map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 27.6094, lng: 75.1399 }, // Sikar-ish default (safe)
+        center: { lat: 27.6094, lng: 75.1399 },
         zoom: 12,
         mapTypeControl: true,
         streetViewControl: false,
         fullscreenControl: true
       });
 
-      /** ✅ Define overlay AFTER Google is ready (fixes “no markers after click”) */
       class StudentOverlay extends google.maps.OverlayView {
-        constructor(position, student){
+        constructor(position, student, rank){
           super();
           this.position = new google.maps.LatLng(position.lat, position.lng);
           this.student = student;
+          this.rank = rank;
           this.div = null;
         }
 
@@ -429,46 +500,48 @@
           const div = document.createElement("div");
           div.className = "gm-student";
 
-          const img = driveToImgUrl(this.student.photo);
-          div.innerHTML = `
-            <div class="bubble" role="button">
-              <img src="${img}" alt="" onerror="this.style.display='none'">
-              <div>
-                <p class="t1">${safeText(this.student.name)}</p>
-                <p class="t2">Class ${safeText(this.student.class)} • Sec ${safeText(this.student.section)}</p>
-              </div>
-            </div>
-            <div class="stem"></div>
-            <div class="dot"></div>
+          const svg = `
+            <svg class="pin-svg" viewBox="0 0 32 44" aria-label="Pin ${this.rank}">
+              <path d="M16 43 C16 43 4 28.9 4 16.2 C4 8.0 9.8 2 16 2 C22.2 2 28 8.0 28 16.2 C28 28.9 16 43 16 43 Z"
+                    fill="#e53935" stroke="rgba(0,0,0,0.20)" stroke-width="1"></path>
+              <text x="16" y="17" text-anchor="middle" dominant-baseline="middle"
+                    fill="#ffffff" font-size="12" font-weight="900">${this.rank}</text>
+            </svg>
           `;
 
-          // Click to expand/collapse + bring to front
-          div.querySelector(".bubble").addEventListener("click", (e) => {
+          div.innerHTML = `
+            <div class="gm-card">
+              <p class="t1">${safeText(this.student.name)}</p>
+              <p class="t2">#${this.rank} • ${this.student._dist.toFixed(2)} km</p>
+              <p class="t2">Class ${safeText(this.student.class)} • Sec ${safeText(this.student.section)}</p>
+              <div class="father">Father: ${safeText(this.student.father || "-")}</div>
+            </div>
+            <div class="gm-stem"></div>
+            <div class="gm-pin-wrap" title="Click to view">${svg}</div>
+          `;
+
+          const pinWrap = div.querySelector(".gm-pin-wrap");
+          const card = div.querySelector(".gm-card");
+
+          pinWrap.addEventListener("click", (e) => {
             e.stopPropagation();
-
-            // collapse all others
             for (const o of studentOverlays){
-              if (o.div){
-                o.div.classList.remove("expanded","selected");
-              }
+              if (o.div) o.div.classList.remove("selected");
             }
-
-            const isExpanded = div.classList.contains("expanded");
-            if (isExpanded){
-              div.classList.remove("expanded","selected");
+            const willSelect = !div.classList.contains("selected");
+            if (willSelect){
+              div.classList.add("selected");
+              div.style.zIndex = "999999";
             } else {
-              div.classList.add("expanded","selected");
+              div.classList.remove("selected");
+              div.style.zIndex = "";
             }
-
-            // keep selected above
-            div.style.zIndex = "999999";
           });
 
-          this.div = div;
+          card.addEventListener("click", (e) => e.stopPropagation());
 
-          // ✅ Use overlayMouseTarget so it always shows + can be clicked
-          const panes = this.getPanes();
-          panes.overlayMouseTarget.appendChild(div);
+          this.div = div;
+          this.getPanes().overlayMouseTarget.appendChild(div);
         }
 
         draw(){
@@ -481,8 +554,10 @@
 
           this.div.style.left = point.x + "px";
           this.div.style.top  = point.y + "px";
-          // default stacking by y (lower on screen above)
-          this.div.style.zIndex = this.div.style.zIndex || String(100000 + Math.round(point.y));
+
+          if (!this.div.style.zIndex){
+            this.div.style.zIndex = String(100000 + Math.round(point.y));
+          }
         }
 
         onRemove(){
@@ -497,7 +572,12 @@
         if (!students.length) return;
         lastCenter = center;
 
-        // Search center marker
+        updateStats(center);
+
+        for (const o of studentOverlays){
+          if (o.div) o.div.classList.remove("selected");
+        }
+
         if (placeMarker) placeMarker.setMap(null);
         placeMarker = new google.maps.Marker({
           position: center,
@@ -515,43 +595,37 @@
         const radiusKmVal = Math.max(0, parseFloat(document.getElementById("radiusInput").value || "0"));
         drawRadius(center, radiusKmVal);
 
-        let list = students.map(s => ({
+        let scored = students.map(s => ({
           ...s,
           _dist: distanceKm(center.lat, center.lng, s.lat, s.lon)
         }));
 
-        if (radiusKmVal > 0) list = list.filter(s => s._dist <= radiusKmVal);
-        list.sort((a,b) => a._dist - b._dist);
-        list = list.slice(0, n);
+        if (radiusKmVal > 0) scored = scored.filter(s => s._dist <= radiusKmVal);
+        scored.sort((a,b) => a._dist - b._dist);
+
+        const totalInRange = scored.length;
+
+        for (let i = 0; i < scored.length; i++){
+          scored[i]._rank = i + 1;
+        }
+
+        const list = scored.slice(0, n);
 
         clearStudentOverlays();
 
-        // group identical coords
-        const groups = new Map();
         for (const s of list){
-          const key = `${s.lat.toFixed(6)},${s.lon.toFixed(6)}`;
-          if (!groups.has(key)) groups.set(key, []);
-          groups.get(key).push(s);
+          const pos = { lat: s.lat, lng: s.lon }; // exact coordinates
+          const overlay = new StudentOverlay(pos, s, s._rank);
+          overlay.setMap(map);
+          studentOverlays.push(overlay);
         }
 
-        for (const arr of groups.values()){
-          for (let i = 0; i < arr.length; i++){
-            const s = arr[i];
-            const pos = offsetDuplicate(s.lat, s.lon, i);
-            const overlay = new StudentOverlay(pos, s);
-            overlay.setMap(map);
-            studentOverlays.push(overlay);
-          }
-        }
-
-        renderSidebar(list, center);
+        renderSidebar(list, totalInRange, center);
       }
 
-      // Click map -> show nearest students
       map.addListener("click", (e) => {
-        // collapse expanded markers on new click
         for (const o of studentOverlays){
-          if (o.div) o.div.classList.remove("expanded","selected");
+          if (o.div) o.div.classList.remove("selected");
         }
         runSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() });
       });
@@ -567,10 +641,12 @@
         if (radiusCircle) radiusCircle.setMap(null);
         radiusCircle = null;
         lastCenter = null;
-        renderSidebar([], null);
+
+        updateStats(null);
+        document.getElementById("sideTitle").textContent = "Nearby students will appear here";
+        document.getElementById("list").innerHTML = "";
       });
 
-      // Google Places Autocomplete
       const input = document.getElementById("searchInput");
       const autocomplete = new google.maps.places.Autocomplete(input, {
         fields: ["geometry", "name", "formatted_address"],
@@ -590,7 +666,6 @@
         runSearch(center);
       });
 
-      // Load data + fit bounds
       const data = await loadStudents();
       if (!data.length){
         setStatus("No valid rows found (check Latitude/Longitude columns).");
@@ -604,7 +679,6 @@
     window.initApp = initApp;
   </script>
 
-  <!-- Google Maps + Places -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC5VODPbqv2q3QGfv9DAtW7VX8_gQHvWlo&libraries=places&callback=initApp"
     async
@@ -612,5 +686,3 @@
   ></script>
 </body>
 </html>
-
-
