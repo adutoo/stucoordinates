@@ -600,7 +600,22 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- Your config -->
-  <script src="./config.js"></script>
+  <script>
+  // Try config.js first (local), fallback to template (GitHub)
+  (function () {
+    const s = document.createElement("script");
+    s.src = "./config.js";
+    s.onload = () => console.log("Loaded config.js");
+    s.onerror = () => {
+      const t = document.createElement("script");
+      t.src = "./config.template.js";
+      document.head.appendChild(t);
+      console.log("config.js missing → loaded config.template.js");
+    };
+    document.head.appendChild(s);
+  })();
+</script>
+
 
   <script>
     /***********************
