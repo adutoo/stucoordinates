@@ -30,7 +30,6 @@
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --border: rgba(255,255,255,.08);
       --bg1: rgba(17, 20, 24, 0.85);
-      --bg2: rgba(27, 32, 39, 0.92);
       --muted: rgba(255,255,255,.55);
       --text: #ffffff;
       --primary: #3c83f6;
@@ -45,10 +44,10 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
     .glass-panel{
-      background: var(--bg1);
+      background: rgba(17, 20, 24, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,.08);
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
 
@@ -60,9 +59,7 @@
       min-height:0;
       transition: grid-template-columns .22s ease;
     }
-    body.side-collapsed{
-      --sideW: 0px;
-    }
+    body.side-collapsed{ --sideW: 0px; }
 
     .map-wrap{ position:relative; min-height:0; overflow:hidden; }
     #map{ position:absolute; inset:0; }
@@ -71,7 +68,7 @@
       height:100vh;
       min-height:0;
       overflow:hidden;
-      border-left: 1px solid var(--border);
+      border-left: 1px solid rgba(255,255,255,.08);
       box-shadow: 0 0 40px rgba(0,0,0,.45);
       transition: transform .22s ease, opacity .22s ease;
       transform: translateX(0);
@@ -83,13 +80,9 @@
       pointer-events: none;
     }
 
-    .list{
-      min-height:0;
-      overflow:auto;
-      padding: 14px;
-    }
+    .list{ min-height:0; overflow:auto; padding: 14px; }
 
-    /* Top Bar - grid prevents overlap */
+    /* Top Bar */
     .topbar{
       position:absolute;
       top:12px; left:12px; right:12px;
@@ -106,34 +99,25 @@
       border-radius: 999px;
     }
     @media (max-width: 1100px){
-      .topbar-inner{
-        grid-template-columns: 1fr;
-        border-radius: 18px;
-      }
-      .top-left, .top-center, .top-right{
-        justify-content: center;
-      }
-      .top-right{
-        flex-wrap: wrap;
-      }
+      .topbar-inner{ grid-template-columns: 1fr; border-radius: 18px; }
+      .top-left, .top-center, .top-right{ justify-content: center; }
+      .top-right{ flex-wrap: wrap; }
     }
 
     /* Search */
     .search-wrap{
-      display:flex;
-      align-items:center;
-      gap:10px;
+      display:flex; align-items:center; gap:10px;
       padding: 6px 10px;
       border-radius: 999px;
       background: rgba(0,0,0,.20);
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,.08);
     }
     .search-wrap input{
       width:100%;
       background: transparent;
       border: none;
       outline:none;
-      color: var(--text);
+      color: #fff;
       font-size: 13px;
     }
     .search-wrap .btn{
@@ -145,14 +129,12 @@
       background: rgba(255,255,255,.06);
       cursor:pointer;
       transition:.15s;
-      display:flex;
-      align-items:center;
-      gap:6px;
+      display:flex; align-items:center; gap:6px;
       white-space:nowrap;
     }
     .search-wrap .btn:hover{ background: rgba(255,255,255,.10); }
 
-    /* Mini pills for MAX & RAD */
+    /* Mini pills */
     .miniPill{
       display:flex; align-items:center;
       background: rgba(0,0,0,.18);
@@ -199,7 +181,7 @@
     }
     .applyBtn:hover{ background: #2563eb; }
 
-    /* Connected badge */
+    /* Badge */
     .badge{
       display:flex; align-items:center; gap:10px;
       padding: 8px 12px;
@@ -261,7 +243,7 @@
       font-weight: 800;
     }
 
-    /* Sidebar toggle handle (always visible) */
+    /* Sidebar toggle handle */
     .sideToggle{
       position:absolute;
       right: 12px;
@@ -282,21 +264,13 @@
     }
     .sideToggle:hover{ background: rgba(255,255,255,.08); }
 
-    /* ===== Custom Dropdown (your design, dark themed) ===== */
-    .custom-select-container {
-      position: relative;
-      width: 160px;
-      user-select: none;
-    }
+    /* ===== Custom Dropdown (dark) ===== */
+    .custom-select-container { position: relative; width: 160px; user-select: none; }
     .select-trigger {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; justify-content: space-between; align-items: center;
       background: rgba(0,0,0,.18);
       padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 800;
-      color: #fff;
+      font-size: 12px; font-weight: 800; color: #fff;
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 999px;
       cursor: pointer;
@@ -306,96 +280,48 @@
       white-space: nowrap;
     }
     .select-trigger:hover { border-color: rgba(255,255,255,.18); }
-    .arrow {
-      width: 18px;
-      height: 18px;
-      transition: transform 0.2s;
-      color: rgba(255,255,255,.65);
-      flex: 0 0 auto;
-    }
+    .arrow { width: 18px; height: 18px; transition: transform 0.2s; color: rgba(255,255,255,.65); flex: 0 0 auto; }
     .options-menu {
-      position: absolute;
-      top: 115%;
-      left: 0;
-      right: 0;
+      position: absolute; top: 115%; left: 0; right: 0;
       background: rgba(17, 20, 24, 0.95);
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 14px;
       box-shadow: 0 16px 36px rgba(0,0,0,0.55);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-10px);
+      opacity: 0; visibility: hidden; transform: translateY(-10px);
       transition: all 0.15s ease;
       z-index: 200;
       overflow: hidden;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      max-height: 280px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
-    .option {
-      padding: 10px 12px;
-      cursor: pointer;
-      color: #fff;
-      transition: background 0.1s;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .option:hover {
-      background-color: var(--primary);
-      color: white;
-    }
-    .option.selected {
-      background-color: rgba(60,131,246,.14);
-      color: #cfe2ff;
-      font-weight: 900;
-    }
-    .custom-select-container.open .options-menu {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-    .custom-select-container.open .select-trigger {
-      border-color: rgba(60,131,246,.55);
-      box-shadow: 0 0 0 3px rgba(60,131,246,.12);
-    }
-    .custom-select-container.open .arrow {
-      transform: rotate(180deg);
-      color: #cfe2ff;
-    }
+    .option { padding: 10px 12px; cursor: pointer; color: #fff; transition: background 0.1s; font-size: 12px; font-weight: 700; }
+    .option:hover { background-color: var(--primary); color: white; }
+    .option.selected { background-color: rgba(60,131,246,.14); color: #cfe2ff; font-weight: 900; }
+    .custom-select-container.open .options-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+    .custom-select-container.open .select-trigger { border-color: rgba(60,131,246,.55); box-shadow: 0 0 0 3px rgba(60,131,246,.12); }
+    .custom-select-container.open .arrow { transform: rotate(180deg); color: #cfe2ff; }
 
     /* ===== Pins overlay ===== */
     .gm-student{ position:absolute; left:0; top:0; user-select:none; }
-    .gm-pin-wrap{
-      position:absolute;
-      transform: translate(-50%, -50%);
-      pointer-events:auto;
-      cursor:pointer;
-    }
+    .gm-pin-wrap{ position:absolute; transform: translate(-50%, -50%); pointer-events:auto; cursor:pointer; }
     .gm-pin{
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
+      width: 34px; height: 34px; border-radius: 999px;
       background: #dc2626;
       border: 2px solid rgba(255,255,255,0.95);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#fff;
-      font-weight: 900;
-      font-size: 12px;
-      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight: 900; font-size: 12px;
+      box-shadow: none;
     }
     .gm-student.selected .gm-pin{
-      box-shadow: 0 0 22px rgba(220,38,38,.45), 0 12px 28px rgba(0,0,0,.40);
-      border-width: 3px;
-      width: 38px;
-      height: 38px;
-      font-size: 13px;
+      border-width: 3px; width: 38px; height: 38px; font-size: 13px; box-shadow: none;
     }
     .gm-popover{
       pointer-events:auto;
-      position:absolute;
-      left:50%;
-      bottom:46px;
+      position:absolute; left:50%; bottom:46px;
       transform: translateX(-50%);
       width: 300px;
       border-radius: 16px;
@@ -408,9 +334,7 @@
     }
     .gm-student.selected .gm-popover{ display:block; }
     .gm-popover .tri{
-      position:absolute;
-      top: 100%;
-      left: 50%;
+      position:absolute; top: 100%; left: 50%;
       transform: translateX(-50%);
       width:0; height:0;
       border-left: 10px solid transparent;
@@ -470,11 +394,8 @@
 
           <!-- Right -->
           <div class="top-right flex items-center gap-2 justify-end">
-            <!-- Sort dropdown -->
-            <div class="custom-select-container" id="sortDropdown"></div>
-
-            <!-- Route dropdown -->
-            <div class="custom-select-container" id="routeDropdown"></div>
+            <div id="sortDropdown"></div>
+            <div id="routeDropdown"></div>
 
             <div class="miniPill">
               <span class="lbl">MAX</span>
@@ -512,9 +433,7 @@
               <span class="material-symbols-outlined text-primary" style="font-size:28px;">security</span>
             </div>
 
-            <h2 class="text-white text-[26px] font-bold leading-tight tracking-[-0.015em] mb-3 font-display">
-              Staff Login
-            </h2>
+            <h2 class="text-white text-[26px] font-bold leading-tight tracking-[-0.015em] mb-3 font-display">Staff Login</h2>
             <p class="text-[#9ca7ba] text-sm font-normal leading-normal max-w-[300px] font-display">
               This page is protected. Login to view student data.
             </p>
@@ -598,85 +517,54 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <!-- Your config -->
+
+  <!-- Config (must exist on GitHub Pages too) -->
   <script src="./config.js"></script>
 
   <script>
     /***********************
-     * CONFIG + CLIENTS
+     * UI + HARD FAIL DIAGNOSTICS
      ***********************/
-    const CFG = window.APP_CONFIG || {};
-    const SUPABASE_URL = CFG.SUPABASE_URL || "YOUR_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
-
-    const GOOGLE_MAPS_API_KEY =
-      CFG.GMAPS_KEY ||
-      CFG.GOOGLE_MAPS_API_KEY ||
-      "YOUR_GOOGLE_MAPS_API_KEY";
-
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
-    const MVP_STORE_KEY = "student_map_mvp_v2";
-
-    const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
-
-    let map;
-    let autocomplete;
-
-    let placeMarker = null;
-    let radiusCircle = null;
-
-    let isAuthed = false;
-
-    let allStudents = [];
-    let allStudentsReady = false;
-    let allStudentsLoading = false;
-
-    let currentResults = [];
-    let currentTotalInRange = 0;
-
-    let lastCenter = null;
-    let selectedIdKey = null;
-
-    let StudentOverlayClass = null;
-    const overlays = [];
-
-    // UI els
     const statusBadge = document.getElementById("statusBadge");
     const logoutBtn = document.getElementById("logoutBtn");
-    const listEl = document.getElementById("list");
-    const sideSub = document.getElementById("sideSub");
-
-    const maxInput = document.getElementById("maxInput");
-    const radiusInput = document.getElementById("radiusInput");
-
-    const applyBtn = document.getElementById("applyBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const exportBtn = document.getElementById("exportBtn");
-    const searchInput = document.getElementById("searchInput");
-
-    const sideToggle = document.getElementById("sideToggle");
-    const sideToggleIcon = document.getElementById("sideToggleIcon");
-
     const authOverlay = document.getElementById("authOverlay");
-    const loginBtn = document.getElementById("loginBtn");
-    const emailInput = document.getElementById("emailInput");
-    const passInput = document.getElementById("passInput");
     const authMsg = document.getElementById("authMsg");
-    const passToggle = document.getElementById("passToggle");
-    const passIcon = document.getElementById("passIcon");
 
-    // Custom dropdown instances
-    let sortDD = null;
-    let routeDD = null;
+    function setStatus(t){ if (statusBadge) statusBadge.textContent = t; }
+    function setAuthMsg(t, cls){
+      if (!authMsg) return;
+      authMsg.textContent = t;
+      authMsg.className = cls || "text-xs text-[#9ca7ba] font-medium";
+    }
+
+    window.addEventListener("error", (e) => {
+      console.error(e.error || e.message);
+      setStatus("Error (check console)");
+      setAuthMsg("JS error. Open console (F12) and reload.", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      logoutBtn.style.display = "none";
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      console.error(e.reason);
+      setStatus("Error (check console)");
+      setAuthMsg("Promise error. Open console (F12) and reload.", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      logoutBtn.style.display = "none";
+    });
+
+    setStatus("Initializing…");
 
     /***********************
      * SAFE HELPERS
      ***********************/
-    function setStatus(text){ statusBadge.textContent = text; }
     function esc(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
     function safeJsonParse(str, fallback){ try { return JSON.parse(str); } catch { return fallback; } }
+    function withTimeout(promise, ms){
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))
+      ]);
+    }
 
     function parseRadiusKm(str){
       const s = String(str ?? "").trim().toLowerCase();
@@ -702,12 +590,9 @@
       return R * c;
     }
 
-    // ✅ DEDUPE helpers: (Name, Class, Route)
+    // Dedupe
     function normKeyPart(v){
-      return String(v ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
+      return String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
     }
     function makeDedupeKey(name, cls, route){
       return `${normKeyPart(name)}|${normKeyPart(cls)}|${normKeyPart(route)}`;
@@ -721,6 +606,111 @@
       return score;
     }
 
+    function forceClearAuthStorage(){
+      const clearFrom = (store) => {
+        try{
+          for (const k of Object.keys(store)){
+            if ((k.startsWith("sb-") && k.endsWith("-auth-token")) || k.startsWith("supabase.auth.")){
+              store.removeItem(k);
+            }
+          }
+        }catch{}
+      };
+      clearFrom(localStorage);
+      clearFrom(sessionStorage);
+    }
+
+    /***********************
+     * CONFIG CHECKS (this is the usual reason for “stuck on connecting”)
+     ***********************/
+    if (!window.supabase?.createClient){
+      setStatus("Supabase failed to load");
+      setAuthMsg("Supabase CDN failed to load. Check your internet / adblock.", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      throw new Error("Supabase UMD missing");
+    }
+
+    const CFG = window.APP_CONFIG || {};
+    const SUPABASE_URL = CFG.SUPABASE_URL || "";
+    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
+    const GOOGLE_MAPS_API_KEY = CFG.GMAPS_KEY || CFG.GOOGLE_MAPS_API_KEY || "";
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
+      setStatus("Config missing");
+      setAuthMsg("config.js not loaded (or missing keys). Check that config.js exists beside index.html on GitHub Pages.", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      throw new Error("APP_CONFIG missing/invalid");
+    }
+
+    function createSbClient(){
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    let sb = createSbClient();
+    let authSubscription = null;
+
+    function bindAuthSubscription(){
+      try{ authSubscription?.unsubscribe?.(); }catch{}
+      authSubscription = null;
+
+      const res = sb.auth.onAuthStateChange(async () => {
+        await ensureAuth();
+      });
+      authSubscription = res?.data?.subscription || null;
+    }
+    function resetSupabaseClient(){
+      try{ authSubscription?.unsubscribe?.(); }catch{}
+      authSubscription = null;
+      sb = createSbClient();
+      bindAuthSubscription();
+    }
+
+    /***********************
+     * GLOBALS + UI
+     ***********************/
+    const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
+    const MVP_STORE_KEY = "student_map_mvp_v2";
+    const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
+
+    let map, autocomplete;
+    let placeMarker = null;
+    let radiusCircle = null;
+    let isAuthed = false;
+
+    let allStudents = [];
+    let allStudentsReady = false;
+    let allStudentsLoading = false;
+
+    let currentResults = [];
+    let currentTotalInRange = 0;
+    let lastCenter = null;
+    let selectedIdKey = null;
+
+    let StudentOverlayClass = null;
+    const overlays = [];
+
+    const listEl = document.getElementById("list");
+    const sideSub = document.getElementById("sideSub");
+    const maxInput = document.getElementById("maxInput");
+    const radiusInput = document.getElementById("radiusInput");
+    const applyBtn = document.getElementById("applyBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const searchInput = document.getElementById("searchInput");
+    const sideToggle = document.getElementById("sideToggle");
+    const sideToggleIcon = document.getElementById("sideToggleIcon");
+    const loginBtn = document.getElementById("loginBtn");
+    const emailInput = document.getElementById("emailInput");
+    const passInput = document.getElementById("passInput");
+    const passToggle = document.getElementById("passToggle");
+    const passIcon = document.getElementById("passIcon");
+
+    let sortDD = null;
+    let routeDD = null;
+
+    /***********************
+     * MVP
+     ***********************/
     function isMvp(student){
       if (mvpSet.has(student.idKey)) return true;
       if (student.legacyKeys && Array.isArray(student.legacyKeys)){
@@ -728,19 +718,20 @@
       }
       return false;
     }
-
     function toggleMvp(idKey){
       if (mvpSet.has(idKey)) mvpSet.delete(idKey);
       else mvpSet.add(idKey);
       localStorage.setItem(MVP_STORE_KEY, JSON.stringify([...mvpSet]));
     }
 
+    /***********************
+     * MAP STATE HELPERS
+     ***********************/
     function clearOverlays(){
       for (const o of overlays) o.setMap(null);
       overlays.length = 0;
       selectedIdKey = null;
     }
-
     function setStats(stats){
       const s = (id, v) => document.getElementById(id).textContent = v;
       if (!stats){
@@ -753,7 +744,6 @@
       s("stat2k",  String(stats["2km"] ?? 0));
       s("stat5k",  String(stats["5km"] ?? 0));
     }
-
     function computeStatsFromDistances(distancesKm){
       const out = { "100m":0, "500m":0, "1km":0, "2km":0, "5km":0 };
       for (const d of distancesKm){
@@ -765,7 +755,6 @@
       }
       return out;
     }
-
     function setCenterMarker(center){
       if (!map) return;
       if (placeMarker) placeMarker.setMap(null);
@@ -775,7 +764,6 @@
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillOpacity: 0.18, strokeOpacity: 1, strokeWeight: 2 }
       });
     }
-
     function makeRadiusCircle(center, radiusKm){
       if (!map) return;
       if (radiusCircle) radiusCircle.setMap(null);
@@ -791,7 +779,6 @@
         });
       }
     }
-
     function getActiveCenter(){
       if (lastCenter) return lastCenter;
       if (map){
@@ -812,11 +799,10 @@
         this.value = value ?? "";
         this.placeholder = placeholder || "Select…";
 
-        mountEl.style.width = widthPx ? `${widthPx}px` : "";
+        this.mountEl.className = "custom-select-container";
+        this.mountEl.style.width = widthPx ? `${widthPx}px` : "";
 
-        this.container = document.createElement("div");
-        this.container.className = "custom-select-container";
-        this.container.innerHTML = `
+        this.mountEl.innerHTML = `
           <div class="select-trigger" role="button" tabindex="0">
             <span class="triggerText">${esc(this.placeholder)}</span>
             <svg class="arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -825,11 +811,10 @@
           </div>
           <div class="options-menu"></div>
         `;
-        mountEl.appendChild(this.container);
 
-        this.trigger = this.container.querySelector(".select-trigger");
-        this.triggerTextEl = this.container.querySelector(".triggerText");
-        this.menu = this.container.querySelector(".options-menu");
+        this.trigger = this.mountEl.querySelector(".select-trigger");
+        this.triggerTextEl = this.mountEl.querySelector(".triggerText");
+        this.menu = this.mountEl.querySelector(".options-menu");
 
         this.trigger.addEventListener("click", () => this.toggle());
         this.trigger.addEventListener("keydown", (e) => {
@@ -840,7 +825,7 @@
         });
 
         document.addEventListener("click", (e) => {
-          if (!this.container.contains(e.target)) this.close();
+          if (!this.mountEl.contains(e.target)) this.close();
         });
 
         this.render();
@@ -891,8 +876,8 @@
         if (fire) this.onChange(val);
       }
 
-      toggle(){ this.container.classList.toggle("open"); }
-      close(){ this.container.classList.remove("open"); }
+      toggle(){ this.mountEl.classList.toggle("open"); }
+      close(){ this.mountEl.classList.remove("open"); }
       getValue(){ return this.value; }
     }
 
@@ -926,20 +911,14 @@
       const nps = (npsRaw === null || npsRaw === undefined || npsRaw === "") ? null : Number(npsRaw);
       const id = row.id ?? null;
 
-      // ✅ DEDUPE KEY: Name + Class + Route (case-insensitive)
       const dedupeKey = makeDedupeKey(name, cls, route);
-
-      // Keep legacy keys for MVP migration (if earlier stored)
       const legacyKeys = [];
       if (id != null) legacyKeys.push(`id:${id}`);
       if (sr) legacyKeys.push(`sr:${sr}`);
 
-      // ✅ Use dedupeKey as the stable key everywhere
-      const idKey = dedupeKey;
-
       return {
         id,
-        idKey,
+        idKey: dedupeKey,
         legacyKeys,
         name,
         class: cls,
@@ -954,8 +933,9 @@
     async function loadAllStudentsOnce(){
       if (allStudentsReady || allStudentsLoading) return;
       allStudentsLoading = true;
+
       setStatus("Loading students…");
-      sideSub.textContent = "Loading…";
+      if (sideSub) sideSub.textContent = "Loading…";
 
       const pageSize = 1000;
       const rawAll = [];
@@ -969,7 +949,7 @@
         if (error){
           console.error(error);
           setStatus("Load error");
-          sideSub.textContent = "Failed to load students";
+          if (sideSub) sideSub.textContent = "Failed to load students";
           allStudentsLoading = false;
           return;
         }
@@ -980,28 +960,23 @@
         page++;
       }
 
-      // ✅ Deduplicate by (Name + Class + Route)
       const dedup = new Map();
-
       for (const r of rawAll){
         const s = normalizeStudent(r);
         if (!s) continue;
 
-        const key = s.idKey; // now equals dedupeKey
-
+        const key = s.idKey;
         if (!dedup.has(key)){
           dedup.set(key, s);
           continue;
         }
 
-        // If duplicate exists, keep the better row (more complete data)
         const existing = dedup.get(key);
         const sa = studentQualityScore(existing);
         const sbq = studentQualityScore(s);
 
-        if (sbq > sa) {
-          dedup.set(key, s);
-        } else if (sbq === sa) {
+        if (sbq > sa) dedup.set(key, s);
+        else if (sbq === sa){
           const an = (existing.nps_score == null ? -Infinity : existing.nps_score);
           const bn = (s.nps_score == null ? -Infinity : s.nps_score);
           if (bn > an) dedup.set(key, s);
@@ -1009,8 +984,10 @@
       }
 
       allStudents = [...dedup.values()];
+      allStudentsReady = true;
+      allStudentsLoading = false;
 
-      // ✅ MVP migration: old stars based on id/sr => map to new dedupeKey
+      // MVP migration
       let changed = false;
       for (const s of allStudents){
         if (s.legacyKeys?.some(k => mvpSet.has(k)) && !mvpSet.has(s.idKey)){
@@ -1022,16 +999,15 @@
         localStorage.setItem(MVP_STORE_KEY, JSON.stringify([...mvpSet]));
       }
 
-      allStudentsReady = true;
-      allStudentsLoading = false;
-
       buildRouteOptions();
 
       setStatus(`Connected • ${allStudents.length} students`);
-      sideSub.textContent = `${allStudents.length} students loaded`;
+      if (sideSub) sideSub.textContent = `${allStudents.length} students loaded`;
     }
 
     function buildRouteOptions(){
+      if (!routeDD) return;
+
       const set = new Set();
       for (const s of allStudents){
         const v = (s.route_no ?? "").toString().trim();
@@ -1046,20 +1022,16 @@
         return String(a).localeCompare(String(b));
       });
 
-      const opts = [
+      routeDD.setOptions([
         { value: "", label: "Route: All" },
         ...routes.map(r => ({ value: r, label: `Route #${r}` }))
-      ];
-      routeDD.setOptions(opts);
+      ]);
     }
 
     /***********************
-     * SORTING (MVP always on top)
+     * SORTING (MVP on top)
      ***********************/
-    function sortMode(){
-      return sortDD.getValue() || "distance";
-    }
-
+    function sortMode(){ return sortDD?.getValue?.() || "distance"; }
     function sortWithMvp(list, mode){
       const m = mode || "distance";
       return list.sort((a,b)=>{
@@ -1090,15 +1062,26 @@
     }
 
     /***********************
-     * AUTH
+     * AUTH (✅ session check has timeout so page never stays "Connecting…")
      ***********************/
     async function ensureAuth(){
-      const { data: { session } } = await sb.auth.getSession();
+      setStatus("Checking session…");
+
+      let session = null;
+      try{
+        const res = await withTimeout(sb.auth.getSession(), 3500);
+        session = res?.data?.session || null;
+      }catch(err){
+        console.warn("getSession timeout/fail:", err);
+        // fallback: show login instead of being stuck
+        session = null;
+      }
 
       if (session?.user){
         isAuthed = true;
         authOverlay.style.display = "none";
         logoutBtn.style.display = "inline-flex";
+        setStatus("Connected");
         await loadAllStudentsOnce();
         setStatus(`Connected • ${allStudents.length} students`);
         return true;
@@ -1108,43 +1091,93 @@
       authOverlay.style.display = "flex";
       logoutBtn.style.display = "none";
       setStatus("Login required");
-      sideSub.textContent = "—";
+      if (sideSub) sideSub.textContent = "—";
       return false;
     }
 
     async function login(){
-      const email = emailInput.value.trim();
-      const password = passInput.value;
+      const email = (emailInput?.value || "").trim();
+      const password = passInput?.value || "";
 
-      authMsg.textContent = "Signing in…";
-      authMsg.className = "text-xs text-[#9ca7ba] font-medium";
+      loginBtn.disabled = true;
+      setAuthMsg("Signing in…", "text-xs text-[#9ca7ba] font-medium");
 
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error){
-        authMsg.textContent = error.message;
-        authMsg.className = "text-xs text-red-400 font-semibold";
-        return;
+      const attempt = async () => {
+        return await withTimeout(sb.auth.signInWithPassword({ email, password }), 10000);
+      };
+
+      try{
+        let res;
+        try{
+          res = await attempt();
+        }catch(err){
+          console.warn("Login issue, resetting client and retrying:", err);
+          resetSupabaseClient();
+          res = await attempt();
+        }
+
+        if (res?.error){
+          setAuthMsg(res.error.message, "text-xs text-red-400 font-semibold");
+          return;
+        }
+
+        setAuthMsg("Signed in ✅", "text-xs text-emerald-300 font-semibold");
+        await ensureAuth();
+      }catch(err){
+        console.error(err);
+        setAuthMsg("Login failed (network). Try again.", "text-xs text-red-400 font-semibold");
+      }finally{
+        loginBtn.disabled = false;
       }
-      authMsg.textContent = "Signed in ✅";
-      authMsg.className = "text-xs text-emerald-300 font-semibold";
-      await ensureAuth();
     }
 
     async function logout(){
-      await sb.auth.signOut();
-      clearState();
-      await ensureAuth();
+      try{
+        logoutBtn.disabled = true;
+        setStatus("Signing out…");
+
+        try{
+          await withTimeout(sb.auth.signOut({ scope: "local" }), 2500);
+        }catch(err){
+          console.warn("signOut timed out/failed (continuing anyway):", err);
+        }
+
+        forceClearAuthStorage();
+        resetSupabaseClient();
+
+        allStudents = [];
+        allStudentsReady = false;
+        allStudentsLoading = false;
+        currentResults = [];
+        currentTotalInRange = 0;
+
+        routeDD?.setOptions?.([{ value: "", label: "Route: All" }]);
+
+        clearState();
+
+        isAuthed = false;
+        authOverlay.style.display = "flex";
+        logoutBtn.style.display = "none";
+        setStatus("Login required");
+        if (sideSub) sideSub.textContent = "—";
+      }finally{
+        logoutBtn.disabled = false;
+      }
     }
 
     function bindAuthUI(){
       if (window.__AUTH_UI_BOUND__) return;
       window.__AUTH_UI_BOUND__ = true;
 
-      loginBtn.addEventListener("click", login);
-      logoutBtn.addEventListener("click", logout);
+      document.getElementById("loginBtn")?.addEventListener("click", login);
+      logoutBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await logout();
+      }, true);
 
-      emailInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
-      passInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+      emailInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+      passInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
 
       passToggle?.addEventListener("click", (e) => {
         e.preventDefault();
@@ -1155,7 +1188,7 @@
     }
 
     /***********************
-     * OVERLAY PINS
+     * OVERLAY PINS + LIST
      ***********************/
     function buildOverlayClass(){
       StudentOverlayClass = class StudentOverlay extends google.maps.OverlayView {
@@ -1245,22 +1278,18 @@
 
     function selectStudent(idKey){
       selectedIdKey = idKey;
-
       for (const o of overlays){
         if (o.div){
-          if (o.student.idKey === idKey) o.div.classList.add("selected");
-          else o.div.classList.remove("selected");
+          o.div.classList.toggle("selected", o.student.idKey === idKey);
         }
       }
       renderSidebar(currentResults);
     }
 
-    // ✅ Smooth pan + smooth zoom
     function smoothZoomTo(targetZoom){
       const stepMs = 90;
       const current = map.getZoom() || 0;
       if (current === targetZoom) return;
-
       const step = current < targetZoom ? 1 : -1;
 
       const tick = () => {
@@ -1274,36 +1303,29 @@
 
     function panToStudent(s){
       if (!map) return;
-
       const target = { lat: s.lat, lng: s.lng };
       const targetZoom = Math.max(map.getZoom() || 12, 16);
-
       map.panTo(target);
-      google.maps.event.addListenerOnce(map, "idle", () => {
-        smoothZoomTo(targetZoom);
-      });
-
+      google.maps.event.addListenerOnce(map, "idle", () => smoothZoomTo(targetZoom));
       selectStudent(s.idKey);
     }
 
-    /***********************
-     * SIDEBAR RENDER + CLICK TO FOCUS
-     ***********************/
     function renderSidebar(list){
+      if (!listEl) return;
       listEl.innerHTML = "";
 
-      const routeVal = routeDD.getValue();
+      const routeVal = routeDD?.getValue?.() || "";
       const radiusKm = parseRadiusKm(radiusInput.value);
 
       if (!allStudentsReady){
-        sideSub.textContent = "Loading…";
+        if (sideSub) sideSub.textContent = "Loading…";
       } else if (!lastCenter && !routeVal){
-        sideSub.textContent = `${allStudents.length} students loaded`;
+        if (sideSub) sideSub.textContent = `${allStudents.length} students loaded`;
       } else if (routeVal){
-        sideSub.textContent = `Route #${routeVal} • Showing ${list.length} out of ${currentTotalInRange}`;
+        if (sideSub) sideSub.textContent = `Route #${routeVal} • Showing ${list.length} out of ${currentTotalInRange}`;
       } else {
         const suffix = radiusKm > 0 ? `within ${radiusKm} km` : "all";
-        sideSub.textContent = `Showing ${list.length} out of ${currentTotalInRange} • ${suffix}`;
+        if (sideSub) sideSub.textContent = `Showing ${list.length} out of ${currentTotalInRange} • ${suffix}`;
       }
 
       if (!list || list.length === 0){
@@ -1357,12 +1379,11 @@
             </p>
           </div>
         `;
-
         listEl.appendChild(card);
       }
     }
 
-    listEl.addEventListener("click", (e) => {
+    listEl?.addEventListener("click", (e) => {
       const mvpBtn = e.target.closest("[data-action='mvp']");
       if (mvpBtn){
         e.stopPropagation();
@@ -1379,15 +1400,11 @@
       const idKey = card.getAttribute("data-idkey");
       const s = currentResults.find(x => x.idKey === idKey);
       if (!s) return;
-
       panToStudent(s);
     });
 
-    /***********************
-     * SEARCH MODES
-     ***********************/
     function rerunCurrentMode(){
-      const routeVal = routeDD.getValue();
+      const routeVal = routeDD?.getValue?.() || "";
       const center = getActiveCenter();
       if (routeVal) runRouteMode(center);
       else if (lastCenter) runNearbyMode(center);
@@ -1416,11 +1433,10 @@
       }
 
       currentTotalInRange = withDist.length;
-
       sortWithMvp(withDist, mode);
+
       const sliced = withDist.slice(0, maxN);
       for (let i=0;i<sliced.length;i++) sliced[i].rank = i+1;
-
       currentResults = sliced;
 
       setStats(computeStatsFromDistances(withDist.map(x => x.dist_km)));
@@ -1439,7 +1455,7 @@
       if (radiusCircle) radiusCircle.setMap(null);
       radiusCircle = null;
 
-      const routeVal = routeDD.getValue();
+      const routeVal = routeDD?.getValue?.() || "";
       const mode = sortMode();
 
       if (!routeVal){
@@ -1457,12 +1473,9 @@
       }
 
       currentTotalInRange = filtered.length;
-
       sortWithMvp(filtered, mode);
 
-      // Route mode shows all
       for (let i=0;i<filtered.length;i++) filtered[i].rank = i+1;
-
       currentResults = filtered;
 
       setStats(computeStatsFromDistances(filtered.map(x => x.dist_km)));
@@ -1486,13 +1499,10 @@
 
       setStats(null);
       renderSidebar([]);
-      sideSub.textContent = allStudentsReady ? `${allStudents.length} students loaded` : "—";
+      if (sideSub) sideSub.textContent = allStudentsReady ? `${allStudents.length} students loaded` : "—";
       setStatus(allStudentsReady ? `Connected • ${allStudents.length} students` : "Connected");
     }
 
-    /***********************
-     * EXPORT
-     ***********************/
     function exportCurrent(){
       if (!currentResults || currentResults.length === 0){
         setStatus("Nothing to export");
@@ -1629,13 +1639,6 @@
       });
     }
 
-    // Global promise error -> show on badge
-    window.addEventListener("unhandledrejection", (e) => {
-      console.error(e);
-      const msg = (e.reason && (e.reason.message || e.reason)) || "Unknown error";
-      setStatus("Error: " + msg);
-    });
-
     /***********************
      * SIDEBAR COLLAPSE
      ***********************/
@@ -1655,6 +1658,8 @@
      * START
      ***********************/
     (async () => {
+      setStatus("Booting…");
+
       bindAuthUI();
 
       sortDD = new CustomDropdown(document.getElementById("sortDropdown"), {
@@ -1685,18 +1690,23 @@
         }
       });
 
+      bindAuthSubscription();
       await ensureAuth();
-      sb.auth.onAuthStateChange(async () => { await ensureAuth(); });
-
-      if (isAuthed) await loadAllStudentsOnce();
 
       if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.includes("YOUR_")){
         setStatus("Maps key missing");
+        setAuthMsg("Google Maps key missing in config.js", "text-xs text-red-400 font-semibold");
+        authOverlay.style.display = "flex";
         return;
       }
+
+      setStatus("Loading map…");
       await loadGoogleMaps();
 
+      if (isAuthed && !allStudentsReady) await loadAllStudentsOnce();
       if (allStudentsReady) renderSidebar([]);
+
+      setStatus(isAuthed ? `Connected • ${allStudents.length} students` : "Login required");
     })();
   </script>
 </body>
