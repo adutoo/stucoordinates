@@ -518,12 +518,12 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- Config (must exist on GitHub Pages too) -->
+  <!-- Config -->
   <script src="./config.js"></script>
 
   <script>
     /***********************
-     * UI + HARD FAIL DIAGNOSTICS
+     * UI Helpers
      ***********************/
     const statusBadge = document.getElementById("statusBadge");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -537,28 +537,9 @@
       authMsg.className = cls || "text-xs text-[#9ca7ba] font-medium";
     }
 
-    window.addEventListener("error", (e) => {
-      console.error(e.error || e.message);
-      setStatus("Error (check console)");
-      setAuthMsg("JS error. Open console (F12) and reload.", "text-xs text-red-400 font-semibold");
-      authOverlay.style.display = "flex";
-      logoutBtn.style.display = "none";
-    });
-    window.addEventListener("unhandledrejection", (e) => {
-      console.error(e.reason);
-      setStatus("Error (check console)");
-      setAuthMsg("Promise error. Open console (F12) and reload.", "text-xs text-red-400 font-semibold");
-      authOverlay.style.display = "flex";
-      logoutBtn.style.display = "none";
-    });
-
-    setStatus("Initializing…");
-
-    /***********************
-     * SAFE HELPERS
-     ***********************/
     function esc(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
     function safeJsonParse(str, fallback){ try { return JSON.parse(str); } catch { return fallback; } }
+
     function withTimeout(promise, ms){
       return Promise.race([
         promise,
@@ -566,6 +547,278 @@
       ]);
     }
 
+    setStatus("Booting…");
+
+    /***********************
+     * Config checks
+     ***********************/
+    if (!window.supabase?.createClient) {
+      setStatus("Supabase failed to load");
+      setAuthMsg("Supabase CDN failed. Check internet / adblock.", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      throw new Error("Supabase UMD missing");
+    }
+
+    const CFG = window.APP_CONFIG || {};
+    const SUPABASE_URL = CFG.SUPABASE_URL || "";
+    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
+    const GOOGLE_MAPS_API_KEY = CFG.GMAPS_KEY || CFG.GOOGLE_MAPS_API_KEY || "";
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
+      setStatus("Config missing");
+      setAuthMsg("config.js not loaded or missing keys (must exist beside index.html).", "text-xs text-red-400 font-semibold");
+      authOverlay.style.display = "flex";
+      throw new Error("APP_CONFIG missing/invalid");
+    }
+
+    /***********************
+     * Supabase Client (IMPORTANT: force persist + refresh)
+     ***********************/
+    function createSbClient(){
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+          storage: window.localStorage
+        }
+      });
+    }
+
+    let sb = createSbClient();
+    let authSubscription = null;
+
+    function bindAuthSubscription(){
+      try{ authSubscription?.unsubscribe?.(); }catch{}
+      authSubscription = null;
+
+      const res = sb.auth.onAuthStateChange(async (event, session) => {
+        // ✅ Use the session provided by Supabase (no “fake logout” on timeouts)
+        if (event === "SIGNED_OUT" || !session?.user){
+          applyAuthUI(null, { reason: event || "SIGNED_OUT" });
+          return;
+        }
+        applyAuthUI(session, { reason: event });
+        if (!allStudentsReady) await loadAllStudentsOnce();
+        setStatus(`Connected • ${allStudents.length} students`);
+      });
+
+      authSubscription = res?.data?.subscription || null;
+    }
+
+    function resetSupabaseClient(){
+      try{ authSubscription?.unsubscribe?.(); }catch{}
+      authSubscription = null;
+      sb = createSbClient();
+      bindAuthSubscription();
+    }
+
+    /***********************
+     * Globals
+     ***********************/
+    const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
+    const MVP_STORE_KEY = "student_map_mvp_v2";
+    const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
+
+    let map, autocomplete;
+    let placeMarker = null;
+    let radiusCircle = null;
+
+    let isAuthed = false;
+    let currentSession = null;
+
+    let allStudents = [];
+    let allStudentsReady = false;
+    let allStudentsLoading = false;
+
+    let currentResults = [];
+    let currentTotalInRange = 0;
+    let lastCenter = null;
+    let selectedIdKey = null;
+
+    let StudentOverlayClass = null;
+    const overlays = [];
+
+    // UI els
+    const listEl = document.getElementById("list");
+    const sideSub = document.getElementById("sideSub");
+    const maxInput = document.getElementById("maxInput");
+    const radiusInput = document.getElementById("radiusInput");
+    const applyBtn = document.getElementById("applyBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const searchInput = document.getElementById("searchInput");
+    const sideToggle = document.getElementById("sideToggle");
+    const sideToggleIcon = document.getElementById("sideToggleIcon");
+    const loginBtn = document.getElementById("loginBtn");
+    const emailInput = document.getElementById("emailInput");
+    const passInput = document.getElementById("passInput");
+    const passToggle = document.getElementById("passToggle");
+    const passIcon = document.getElementById("passIcon");
+
+    let sortDD = null;
+    let routeDD = null;
+
+    /***********************
+     * Auth UI (never auto-logout on temporary failures)
+     ***********************/
+    function applyAuthUI(session, { reason } = {}){
+      currentSession = session || null;
+      const authed = !!session?.user;
+
+      isAuthed = authed;
+
+      if (authed){
+        authOverlay.style.display = "none";
+        logoutBtn.style.display = "inline-flex";
+        setAuthMsg("Authorized personnel only");
+        setStatus("Connected");
+      } else {
+        authOverlay.style.display = "flex";
+        logoutBtn.style.display = "none";
+        setStatus("Login required");
+        if (sideSub) sideSub.textContent = "—";
+        // optional: clear map pins when signed out
+        clearState();
+      }
+    }
+
+    async function ensureAuthInitial(){
+      setStatus("Checking session…");
+
+      try{
+        // longer timeout, but still not “forever”
+        const res = await withTimeout(sb.auth.getSession(), 12000);
+        const session = res?.data?.session || null;
+        applyAuthUI(session, { reason: "INITIAL_SESSION" });
+        if (session?.user && !allStudentsReady) await loadAllStudentsOnce();
+        if (session?.user) setStatus(`Connected • ${allStudents.length} students`);
+      } catch (e){
+        // ✅ Do NOT switch to logged out. Just show reconnect message.
+        console.warn("Initial session check failed:", e);
+        if (!isAuthed){
+          authOverlay.style.display = "flex";
+          logoutBtn.style.display = "none";
+          setStatus("Connecting…");
+          setAuthMsg("Connecting… (check internet) then try login.", "text-xs text-[#9ca7ba] font-medium");
+        } else {
+          setStatus("Reconnecting…");
+        }
+      }
+    }
+
+    async function login(){
+      const email = (emailInput?.value || "").trim();
+      const password = passInput?.value || "";
+
+      loginBtn.disabled = true;
+      setAuthMsg("Signing in…", "text-xs text-[#9ca7ba] font-medium");
+
+      try{
+        const res = await withTimeout(sb.auth.signInWithPassword({ email, password }), 15000);
+        if (res?.error){
+          setAuthMsg(res.error.message, "text-xs text-red-400 font-semibold");
+          return;
+        }
+        // onAuthStateChange will fire SIGNED_IN and apply UI
+        setAuthMsg("Signed in ✅", "text-xs text-emerald-300 font-semibold");
+      } catch (err){
+        console.warn("Login error, retrying with fresh client:", err);
+        // Retry once with a fresh client
+        try{
+          resetSupabaseClient();
+          const res2 = await withTimeout(sb.auth.signInWithPassword({ email, password }), 15000);
+          if (res2?.error){
+            setAuthMsg(res2.error.message, "text-xs text-red-400 font-semibold");
+            return;
+          }
+          setAuthMsg("Signed in ✅", "text-xs text-emerald-300 font-semibold");
+        } catch (e2){
+          console.error(e2);
+          setAuthMsg("Login failed (network). Try again.", "text-xs text-red-400 font-semibold");
+        }
+      } finally {
+        loginBtn.disabled = false;
+      }
+    }
+
+    function forceClearAuthStorage(){
+      const clearFrom = (store) => {
+        try{
+          for (const k of Object.keys(store)){
+            if ((k.startsWith("sb-") && k.endsWith("-auth-token")) || k.startsWith("supabase.auth.")){
+              store.removeItem(k);
+            }
+          }
+        }catch{}
+      };
+      clearFrom(localStorage);
+      clearFrom(sessionStorage);
+    }
+
+    async function logout(){
+      try{
+        logoutBtn.disabled = true;
+        setStatus("Signing out…");
+
+        try{
+          await withTimeout(sb.auth.signOut({ scope: "local" }), 8000);
+        }catch(err){
+          console.warn("signOut timed out/failed (continuing):", err);
+        }
+
+        forceClearAuthStorage();
+        resetSupabaseClient();
+        applyAuthUI(null, { reason: "LOGOUT_CLICK" });
+
+      } finally {
+        logoutBtn.disabled = false;
+      }
+    }
+
+    function bindAuthUI(){
+      if (window.__AUTH_UI_BOUND__) return;
+      window.__AUTH_UI_BOUND__ = true;
+
+      document.getElementById("loginBtn")?.addEventListener("click", login);
+
+      logoutBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await logout();
+      }, true);
+
+      emailInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+      passInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+
+      passToggle?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const isHidden = passInput.type === "password";
+        passInput.type = isHidden ? "text" : "password";
+        passIcon.textContent = isHidden ? "visibility_off" : "visibility";
+      });
+    }
+
+    /***********************
+     * KEEP ALIVE (prevents “random logout” in background tabs)
+     ***********************/
+    setInterval(async () => {
+      try{
+        // Touch session so refresh happens when needed
+        await sb.auth.getSession();
+      }catch{}
+    }, 4 * 60 * 1000);
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible"){
+        // refresh UI from real session when user returns
+        await ensureAuthInitial();
+      }
+    });
+
+    /***********************
+     * App logic (unchanged parts below)
+     ***********************/
     function parseRadiusKm(str){
       const s = String(str ?? "").trim().toLowerCase();
       if (!s) return 0;
@@ -590,7 +843,7 @@
       return R * c;
     }
 
-    // Dedupe
+    // Dedupe helpers
     function normKeyPart(v){
       return String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
     }
@@ -606,111 +859,6 @@
       return score;
     }
 
-    function forceClearAuthStorage(){
-      const clearFrom = (store) => {
-        try{
-          for (const k of Object.keys(store)){
-            if ((k.startsWith("sb-") && k.endsWith("-auth-token")) || k.startsWith("supabase.auth.")){
-              store.removeItem(k);
-            }
-          }
-        }catch{}
-      };
-      clearFrom(localStorage);
-      clearFrom(sessionStorage);
-    }
-
-    /***********************
-     * CONFIG CHECKS (this is the usual reason for “stuck on connecting”)
-     ***********************/
-    if (!window.supabase?.createClient){
-      setStatus("Supabase failed to load");
-      setAuthMsg("Supabase CDN failed to load. Check your internet / adblock.", "text-xs text-red-400 font-semibold");
-      authOverlay.style.display = "flex";
-      throw new Error("Supabase UMD missing");
-    }
-
-    const CFG = window.APP_CONFIG || {};
-    const SUPABASE_URL = CFG.SUPABASE_URL || "";
-    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
-    const GOOGLE_MAPS_API_KEY = CFG.GMAPS_KEY || CFG.GOOGLE_MAPS_API_KEY || "";
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
-      setStatus("Config missing");
-      setAuthMsg("config.js not loaded (or missing keys). Check that config.js exists beside index.html on GitHub Pages.", "text-xs text-red-400 font-semibold");
-      authOverlay.style.display = "flex";
-      throw new Error("APP_CONFIG missing/invalid");
-    }
-
-    function createSbClient(){
-      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
-
-    let sb = createSbClient();
-    let authSubscription = null;
-
-    function bindAuthSubscription(){
-      try{ authSubscription?.unsubscribe?.(); }catch{}
-      authSubscription = null;
-
-      const res = sb.auth.onAuthStateChange(async () => {
-        await ensureAuth();
-      });
-      authSubscription = res?.data?.subscription || null;
-    }
-    function resetSupabaseClient(){
-      try{ authSubscription?.unsubscribe?.(); }catch{}
-      authSubscription = null;
-      sb = createSbClient();
-      bindAuthSubscription();
-    }
-
-    /***********************
-     * GLOBALS + UI
-     ***********************/
-    const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
-    const MVP_STORE_KEY = "student_map_mvp_v2";
-    const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
-
-    let map, autocomplete;
-    let placeMarker = null;
-    let radiusCircle = null;
-    let isAuthed = false;
-
-    let allStudents = [];
-    let allStudentsReady = false;
-    let allStudentsLoading = false;
-
-    let currentResults = [];
-    let currentTotalInRange = 0;
-    let lastCenter = null;
-    let selectedIdKey = null;
-
-    let StudentOverlayClass = null;
-    const overlays = [];
-
-    const listEl = document.getElementById("list");
-    const sideSub = document.getElementById("sideSub");
-    const maxInput = document.getElementById("maxInput");
-    const radiusInput = document.getElementById("radiusInput");
-    const applyBtn = document.getElementById("applyBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const exportBtn = document.getElementById("exportBtn");
-    const searchInput = document.getElementById("searchInput");
-    const sideToggle = document.getElementById("sideToggle");
-    const sideToggleIcon = document.getElementById("sideToggleIcon");
-    const loginBtn = document.getElementById("loginBtn");
-    const emailInput = document.getElementById("emailInput");
-    const passInput = document.getElementById("passInput");
-    const passToggle = document.getElementById("passToggle");
-    const passIcon = document.getElementById("passIcon");
-
-    let sortDD = null;
-    let routeDD = null;
-
-    /***********************
-     * MVP
-     ***********************/
     function isMvp(student){
       if (mvpSet.has(student.idKey)) return true;
       if (student.legacyKeys && Array.isArray(student.legacyKeys)){
@@ -724,14 +872,12 @@
       localStorage.setItem(MVP_STORE_KEY, JSON.stringify([...mvpSet]));
     }
 
-    /***********************
-     * MAP STATE HELPERS
-     ***********************/
     function clearOverlays(){
       for (const o of overlays) o.setMap(null);
       overlays.length = 0;
       selectedIdKey = null;
     }
+
     function setStats(stats){
       const s = (id, v) => document.getElementById(id).textContent = v;
       if (!stats){
@@ -744,6 +890,7 @@
       s("stat2k",  String(stats["2km"] ?? 0));
       s("stat5k",  String(stats["5km"] ?? 0));
     }
+
     function computeStatsFromDistances(distancesKm){
       const out = { "100m":0, "500m":0, "1km":0, "2km":0, "5km":0 };
       for (const d of distancesKm){
@@ -755,6 +902,7 @@
       }
       return out;
     }
+
     function setCenterMarker(center){
       if (!map) return;
       if (placeMarker) placeMarker.setMap(null);
@@ -764,6 +912,7 @@
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillOpacity: 0.18, strokeOpacity: 1, strokeWeight: 2 }
       });
     }
+
     function makeRadiusCircle(center, radiusKm){
       if (!map) return;
       if (radiusCircle) radiusCircle.setMap(null);
@@ -779,6 +928,7 @@
         });
       }
     }
+
     function getActiveCenter(){
       if (lastCenter) return lastCenter;
       if (map){
@@ -789,7 +939,7 @@
     }
 
     /***********************
-     * CUSTOM DROPDOWN
+     * Custom Dropdown
      ***********************/
     class CustomDropdown {
       constructor(mountEl, { placeholder, options, value, onChange, widthPx }){
@@ -882,7 +1032,7 @@
     }
 
     /***********************
-     * LOAD + NORMALIZE
+     * Load + Normalize
      ***********************/
     function normalizeStudent(row){
       if (!row) return null;
@@ -1029,7 +1179,7 @@
     }
 
     /***********************
-     * SORTING (MVP on top)
+     * Sorting
      ***********************/
     function sortMode(){ return sortDD?.getValue?.() || "distance"; }
     function sortWithMvp(list, mode){
@@ -1054,7 +1204,6 @@
           if (ad !== bd) return ad - bd;
           return String(a.name).localeCompare(String(b.name));
         }
-        // both
         if (bn !== an) return bn - an;
         if (ad !== bd) return ad - bd;
         return String(a.name).localeCompare(String(b.name));
@@ -1062,133 +1211,8 @@
     }
 
     /***********************
-     * AUTH (✅ session check has timeout so page never stays "Connecting…")
-     ***********************/
-    async function ensureAuth(){
-      setStatus("Checking session…");
-
-      let session = null;
-      try{
-        const res = await withTimeout(sb.auth.getSession(), 3500);
-        session = res?.data?.session || null;
-      }catch(err){
-        console.warn("getSession timeout/fail:", err);
-        // fallback: show login instead of being stuck
-        session = null;
-      }
-
-      if (session?.user){
-        isAuthed = true;
-        authOverlay.style.display = "none";
-        logoutBtn.style.display = "inline-flex";
-        setStatus("Connected");
-        await loadAllStudentsOnce();
-        setStatus(`Connected • ${allStudents.length} students`);
-        return true;
-      }
-
-      isAuthed = false;
-      authOverlay.style.display = "flex";
-      logoutBtn.style.display = "none";
-      setStatus("Login required");
-      if (sideSub) sideSub.textContent = "—";
-      return false;
-    }
-
-    async function login(){
-      const email = (emailInput?.value || "").trim();
-      const password = passInput?.value || "";
-
-      loginBtn.disabled = true;
-      setAuthMsg("Signing in…", "text-xs text-[#9ca7ba] font-medium");
-
-      const attempt = async () => {
-        return await withTimeout(sb.auth.signInWithPassword({ email, password }), 10000);
-      };
-
-      try{
-        let res;
-        try{
-          res = await attempt();
-        }catch(err){
-          console.warn("Login issue, resetting client and retrying:", err);
-          resetSupabaseClient();
-          res = await attempt();
-        }
-
-        if (res?.error){
-          setAuthMsg(res.error.message, "text-xs text-red-400 font-semibold");
-          return;
-        }
-
-        setAuthMsg("Signed in ✅", "text-xs text-emerald-300 font-semibold");
-        await ensureAuth();
-      }catch(err){
-        console.error(err);
-        setAuthMsg("Login failed (network). Try again.", "text-xs text-red-400 font-semibold");
-      }finally{
-        loginBtn.disabled = false;
-      }
-    }
-
-    async function logout(){
-      try{
-        logoutBtn.disabled = true;
-        setStatus("Signing out…");
-
-        try{
-          await withTimeout(sb.auth.signOut({ scope: "local" }), 2500);
-        }catch(err){
-          console.warn("signOut timed out/failed (continuing anyway):", err);
-        }
-
-        forceClearAuthStorage();
-        resetSupabaseClient();
-
-        allStudents = [];
-        allStudentsReady = false;
-        allStudentsLoading = false;
-        currentResults = [];
-        currentTotalInRange = 0;
-
-        routeDD?.setOptions?.([{ value: "", label: "Route: All" }]);
-
-        clearState();
-
-        isAuthed = false;
-        authOverlay.style.display = "flex";
-        logoutBtn.style.display = "none";
-        setStatus("Login required");
-        if (sideSub) sideSub.textContent = "—";
-      }finally{
-        logoutBtn.disabled = false;
-      }
-    }
-
-    function bindAuthUI(){
-      if (window.__AUTH_UI_BOUND__) return;
-      window.__AUTH_UI_BOUND__ = true;
-
-      document.getElementById("loginBtn")?.addEventListener("click", login);
-      logoutBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        await logout();
-      }, true);
-
-      emailInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
-      passInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
-
-      passToggle?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const isHidden = passInput.type === "password";
-        passInput.type = isHidden ? "text" : "password";
-        passIcon.textContent = isHidden ? "visibility_off" : "visibility";
-      });
-    }
-
-    /***********************
-     * OVERLAY PINS + LIST
+     * Overlay Pins + Sidebar + Map
+     * (kept same as your previous working build)
      ***********************/
     function buildOverlayClass(){
       StudentOverlayClass = class StudentOverlay extends google.maps.OverlayView {
@@ -1539,9 +1563,6 @@
       URL.revokeObjectURL(url);
     }
 
-    /***********************
-     * MAP INIT
-     ***********************/
     async function initMapApp(){
       const darkStyle = [
         { elementType: "geometry", stylers: [{ color: "#1b2027" }] },
@@ -1639,9 +1660,6 @@
       });
     }
 
-    /***********************
-     * SIDEBAR COLLAPSE
-     ***********************/
     function syncSideToggleIcon(){
       const collapsed = document.body.classList.contains("side-collapsed");
       sideToggleIcon.textContent = collapsed ? "chevron_left" : "chevron_right";
@@ -1658,8 +1676,6 @@
      * START
      ***********************/
     (async () => {
-      setStatus("Booting…");
-
       bindAuthUI();
 
       sortDD = new CustomDropdown(document.getElementById("sortDropdown"), {
@@ -1691,9 +1707,9 @@
       });
 
       bindAuthSubscription();
-      await ensureAuth();
+      await ensureAuthInitial();
 
-      if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.includes("YOUR_")){
+      if (!GOOGLE_MAPS_API_KEY){
         setStatus("Maps key missing");
         setAuthMsg("Google Maps key missing in config.js", "text-xs text-red-400 font-semibold");
         authOverlay.style.display = "flex";
@@ -1707,6 +1723,7 @@
       if (allStudentsReady) renderSidebar([]);
 
       setStatus(isAuthed ? `Connected • ${allStudents.length} students` : "Login required");
+      exportBtn.addEventListener("click", exportCurrent);
     })();
   </script>
 </body>
