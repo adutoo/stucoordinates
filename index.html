@@ -1,378 +1,765 @@
 <!doctype html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>School Student Map (Google Maps)</title>
+  <title>School Student Map</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@200..700&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: { primary: "#3c83f6" },
+          fontFamily: { display: ["Inter", "sans-serif"] },
+        }
+      }
+    }
+  </script>
 
   <style>
     :root{
-      --bg:#0b1220; --muted:#a7b4d6; --text:#e9eeff; --border:rgba(255,255,255,.10);
-      --shadow:0 12px 40px rgba(0,0,0,.40);
-      --radius:18px;
+      --sideW: 320px;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --border: rgba(255,255,255,.08);
+      --bg1: rgba(17, 20, 24, 0.85);
+      --bg2: rgba(27, 32, 39, 0.92);
+      --muted: rgba(255,255,255,.55);
+      --text: #ffffff;
+      --primary: #3c83f6;
     }
-    *{ box-sizing:border-box; }
-    html, body{ height:100%; overflow:hidden; }
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background:var(--bg);
-      color:var(--text);
+    html, body { height:100%; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#111418; color:#fff; overflow:hidden; }
+
+    /* Dark scrollbar */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+    .glass-panel{
+      background: var(--bg1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
 
-    .app{ height:100vh; overflow:hidden; }
+    /* Layout */
     .main{
-      height:100%;
+      height:100vh;
       display:grid;
-      grid-template-columns: 1fr minmax(260px, 340px);
+      grid-template-columns: 1fr var(--sideW);
       min-height:0;
+      transition: grid-template-columns .22s ease;
+    }
+    body.side-collapsed{
+      --sideW: 0px;
     }
 
     .map-wrap{ position:relative; min-height:0; overflow:hidden; }
-    #map{ height:100%; width:100%; }
+    #map{ position:absolute; inset:0; }
 
-    /* Overlay controls */
-    .map-ui{
-      position:absolute;
-      top:12px; left:12px; right:12px;
-      z-index:10;
-      pointer-events:none;
-      display:flex; flex-direction:column; gap:10px;
-    }
-    .ui-row{ display:flex; align-items:center; gap:10px; pointer-events:none; }
-    .ui-row.center{ justify-content:center; }
-    .ui-row.space{ justify-content:space-between; }
-
-    .badge, .control, .btn, .statbox{
-      pointer-events:auto;
-      border:1px solid var(--border);
-      border-radius:999px;
-      background:rgba(15, 26, 51, .70);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-    }
-    .badge{
-      padding:7px 10px;
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .control{
-      display:flex; gap:8px; align-items:center;
-      padding:7px 10px;
-      font-size:12px;
-      color:var(--muted);
-    }
-    .control input{
-      width:110px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.25);
-      color:var(--text);
-      outline:none;
-    }
-    .control.search input{ width:340px; }
-    .btn{
-      padding:8px 12px;
-      color:var(--text);
-      cursor:pointer;
-    }
-    .btn:hover{ background:rgba(255,255,255,.10); }
-
-    /* Bottom-left stats */
-    .stats-panel{
-      position:absolute;
-      left:12px;
-      bottom:12px;
-      z-index:10;
-      pointer-events:none;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      max-width:60vw;
-    }
-    .statbox{
-      pointer-events:none;
-      padding:8px 10px;
-      border-radius:14px;
-      font-size:12px;
-      color:var(--text);
-      background:rgba(15, 26, 51, .72);
-      white-space:nowrap;
-    }
-    .statbox span{ color:var(--muted); font-weight:800; }
-
-    /* Sidebar */
     .side{
-      border-left:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
-      padding:14px;
+      height:100vh;
       min-height:0;
       overflow:hidden;
-      display:flex;
-      flex-direction:column;
+      border-left: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(0,0,0,.45);
+      transition: transform .22s ease, opacity .22s ease;
+      transform: translateX(0);
+      opacity: 1;
     }
-    .side h2{
-      margin:0 0 10px;
-      font-size:14px;
-      color:var(--muted);
-      font-weight:700;
-      flex:0 0 auto;
+    body.side-collapsed .side{
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
     }
+
     .list{
-      flex:1 1 auto;
       min-height:0;
       overflow:auto;
-      padding-bottom:10px;
-      overscroll-behavior: contain;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
+      padding: 14px;
     }
-    .rowcard{
-      display:flex; gap:10px; align-items:flex-start;
-      padding:10px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.04);
-      border-radius:var(--radius);
-    }
-    .rankPill{
-      width:28px; height:28px; border-radius:10px;
-      display:flex; align-items:center; justify-content:center;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.08);
-      font-weight:900;
-      font-size:12px;
-      flex:0 0 auto;
-    }
-    .meta{ min-width:0; }
-    .name{ font-weight:900; font-size:13px; line-height:1.1; margin:0; }
-    .sub{ margin:4px 0 0; font-size:12px; color:var(--muted); }
 
-    /* ===== Custom Overlay Marker ===== */
-    .gm-student{
+    /* Top Bar - grid prevents overlap */
+    .topbar{
       position:absolute;
-      left:0; top:0;
+      top:12px; left:12px; right:12px;
+      z-index: 20;
       pointer-events:none;
-      user-select:none;
+    }
+    .topbar-inner{
+      pointer-events:auto;
+      display:grid;
+      grid-template-columns: auto minmax(280px, 1fr) auto;
+      gap: 12px;
+      align-items:center;
+      padding: 10px;
+      border-radius: 999px;
+    }
+    @media (max-width: 1100px){
+      .topbar-inner{
+        grid-template-columns: 1fr;
+        border-radius: 18px;
+      }
+      .top-left, .top-center, .top-right{
+        justify-content: center;
+      }
+      .top-right{
+        flex-wrap: wrap;
+      }
     }
 
-    /* Anchor the PIN TIP at the exact coordinate */
+    /* Search */
+    .search-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.20);
+      border: 1px solid var(--border);
+    }
+    .search-wrap input{
+      width:100%;
+      background: transparent;
+      border: none;
+      outline:none;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .search-wrap .btn{
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+      transition:.15s;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .search-wrap .btn:hover{ background: rgba(255,255,255,.10); }
+
+    /* Mini pills for MAX & RAD */
+    .miniPill{
+      display:flex; align-items:center;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 6px 12px;
+      gap: 8px;
+      height: 36px;
+    }
+    .miniPill input{
+      width: 54px;
+      text-align:center;
+      background:transparent;
+      border:none;
+      outline:none;
+      padding:0;
+      color:#fff;
+      font-weight:800;
+      font-size:12px;
+    }
+    .miniPill .lbl{
+      font-size:10px;
+      color: rgba(255,255,255,.55);
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      font-weight:700;
+    }
+
+    .applyBtn{
+      background: var(--primary);
+      border: 1px solid rgba(255,255,255,.12);
+      color:#fff;
+      font-weight:900;
+      font-size: 12px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      cursor:pointer;
+      transition:.15s;
+      height: 36px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+    }
+    .applyBtn:hover{ background: #2563eb; }
+
+    /* Connected badge */
+    .badge{
+      display:flex; align-items:center; gap:10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .dot{
+      width:10px; height:10px;
+      border-radius: 999px;
+      background: var(--primary);
+      box-shadow: 0 0 14px rgba(60,131,246,.45);
+    }
+
+    .logoutBtn{
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      font-size: 12px;
+      font-weight: 900;
+      cursor:pointer;
+      transition:.15s;
+      white-space:nowrap;
+    }
+    .logoutBtn:hover{ background: rgba(255,255,255,.06); }
+
+    /* Bottom stats */
+    .statsbar{
+      position:absolute;
+      left:14px;
+      bottom:14px;
+      z-index: 20;
+      pointer-events:auto;
+      display:flex;
+      gap:8px;
+      flex-wrap: wrap;
+      max-width: 70vw;
+    }
+    .statChip{
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .statChip span.label{
+      font-size: 10px;
+      letter-spacing:.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    /* Sidebar toggle handle (always visible) */
+    .sideToggle{
+      position:absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+      pointer-events:auto;
+      width: 40px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(0,0,0,.30);
+      border: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:.15s;
+    }
+    .sideToggle:hover{ background: rgba(255,255,255,.08); }
+
+    /* ===== Custom Dropdown (your design, dark themed) ===== */
+    .custom-select-container {
+      position: relative;
+      width: 160px;
+      user-select: none;
+    }
+    .select-trigger {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,.18);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+      height: 36px;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .select-trigger:hover { border-color: rgba(255,255,255,.18); }
+    .arrow {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s;
+      color: rgba(255,255,255,.65);
+      flex: 0 0 auto;
+    }
+    .options-menu {
+      position: absolute;
+      top: 115%;
+      left: 0;
+      right: 0;
+      background: rgba(17, 20, 24, 0.95);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.55);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.15s ease;
+      z-index: 200;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .option {
+      padding: 10px 12px;
+      cursor: pointer;
+      color: #fff;
+      transition: background 0.1s;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .option:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+    .option.selected {
+      background-color: rgba(60,131,246,.14);
+      color: #cfe2ff;
+      font-weight: 900;
+    }
+    .custom-select-container.open .options-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .custom-select-container.open .select-trigger {
+      border-color: rgba(60,131,246,.55);
+      box-shadow: 0 0 0 3px rgba(60,131,246,.12);
+    }
+    .custom-select-container.open .arrow {
+      transform: rotate(180deg);
+      color: #cfe2ff;
+    }
+
+    /* ===== Pins overlay ===== */
+    .gm-student{ position:absolute; left:0; top:0; user-select:none; }
     .gm-pin-wrap{
       position:absolute;
-      left:0; top:0;
-      transform: translate(-50%, -100%);
+      transform: translate(-50%, -50%);
       pointer-events:auto;
       cursor:pointer;
     }
-
-    /* ✅ Wider pins + ✅ no shadow */
-    .pin-svg{
-      width:34px;        /* was 28px */
-      height:44px;       /* keep proportion */
-      filter:none;       /* removed shadow */
-      display:block;
+    .gm-pin{
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #dc2626;
+      border: 2px solid rgba(255,255,255,0.95);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight: 900;
+      font-size: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
     }
-
-    /* Card */
-    .gm-card{
+    .gm-student.selected .gm-pin{
+      box-shadow: 0 0 22px rgba(220,38,38,.45), 0 12px 28px rgba(0,0,0,.40);
+      border-width: 3px;
+      width: 38px;
+      height: 38px;
+      font-size: 13px;
+    }
+    .gm-popover{
       pointer-events:auto;
       position:absolute;
-      left:0;
-      top:-50px;
-      transform: translate(-50%, -100%);
-      width:230px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(17,28,58,.92);
-      backdrop-filter: blur(10px);
+      left:50%;
+      bottom:46px;
+      transform: translateX(-50%);
+      width: 300px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(17, 20, 24, 0.90);
+      backdrop-filter: blur(12px);
       box-shadow: var(--shadow);
-      padding:10px 12px;
-      display:none;
-      cursor:default;
-    }
-    .gm-card .t1{
-      margin:0;
-      font-weight:900;
-      font-size:13px;
-      line-height:1.15;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .gm-card .t2{
-      margin:6px 0 0;
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .gm-card .father{
-      margin:8px 0 0;
-      font-size:12px;
-      color:var(--text);
-      border-top:1px solid rgba(255,255,255,.10);
-      padding-top:8px;
+      padding: 14px;
       display:none;
     }
-    .gm-card:hover .father{ display:block; }
-    .gm-student.selected .gm-card{ display:block; }
-
-    .gm-stem{
+    .gm-student.selected .gm-popover{ display:block; }
+    .gm-popover .tri{
       position:absolute;
-      left:0;
-      top:-38px;
-      transform: translate(-50%, -50%) rotate(45deg);
-      width:10px;
-      height:10px;
-      background:rgba(17,28,58,.92);
-      border-right:1px solid rgba(255,255,255,.12);
-      border-bottom:1px solid rgba(255,255,255,.12);
-      border-radius:2px;
-      display:none;
-      pointer-events:none;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width:0; height:0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid rgba(17, 20, 24, 0.90);
+      filter: drop-shadow(0 -1px 0 rgba(255,255,255,.10));
     }
-    .gm-student.selected .gm-stem{ display:block; }
+    .gm-father{ display:none; }
+    .gm-popover:hover .gm-father{ display:block; }
+
+    /* Auth overlay */
+    #authOverlay{ display:none; }
 
     @media (max-width: 900px){
-      .main{
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 0.9fr;
-      }
-      .side{ border-left:none; border-top:1px solid var(--border); }
-      .control.search input{ width:220px; }
-      .gm-card{ width:210px; }
-      .pin-svg{ width:32px; height:42px; }
+      .main{ grid-template-columns: 1fr; }
+      .side{ display:none; }
+      .sideToggle{ display:none; }
+      .custom-select-container{ width: 150px; }
     }
   </style>
 </head>
 
-<body>
-  <div class="app">
-    <div class="main">
-      <div class="map-wrap">
-        <div id="map"></div>
+<body class="font-display selection:bg-primary/30">
+  <div class="main">
+    <!-- MAP -->
+    <div class="map-wrap">
+      <div id="map"></div>
 
-        <div class="map-ui">
-          <div class="ui-row center">
-            <div class="control search">
-              <input id="searchInput" type="text" placeholder="Search a place…" autocomplete="off" />
-              <button id="clearBtn" class="btn" title="Clear pins">Clear</button>
+      <!-- Sidebar toggle handle -->
+      <button id="sideToggle" class="sideToggle" title="Toggle sidebar">
+        <span id="sideToggleIcon" class="material-symbols-outlined text-white/80">chevron_right</span>
+      </button>
+
+      <!-- TOP BAR -->
+      <div class="topbar">
+        <div class="glass-panel topbar-inner">
+          <!-- Left -->
+          <div class="top-left flex items-center gap-2 justify-start">
+            <div class="badge">
+              <div class="dot"></div>
+              <span id="statusBadge">Connecting…</span>
+            </div>
+            <button id="logoutBtn" class="logoutBtn" style="display:none;">Logout</button>
+          </div>
+
+          <!-- Center -->
+          <div class="top-center flex items-center justify-center min-w-0">
+            <div class="search-wrap w-full max-w-[520px]">
+              <span class="material-symbols-outlined text-white/60 text-[18px]">search</span>
+              <input id="searchInput" type="text" placeholder="Search map locations..." autocomplete="off" />
+              <button id="clearBtn" class="btn" title="Clear pins">
+                <span class="material-symbols-outlined text-[16px]">close</span>
+                Clear
+              </button>
             </div>
           </div>
 
-          <div class="ui-row space">
-            <div class="badge" id="status">Loading sheet…</div>
+          <!-- Right -->
+          <div class="top-right flex items-center gap-2 justify-end">
+            <!-- Sort dropdown -->
+            <div class="custom-select-container" id="sortDropdown"></div>
 
-            <div style="display:flex; gap:10px; align-items:center; pointer-events:none;">
-              <div class="control">
-                Students:
-                <input id="countInput" type="number" min="1" max="200" value="10" />
-              </div>
+            <!-- Route dropdown -->
+            <div class="custom-select-container" id="routeDropdown"></div>
 
-              <div class="control">
-                Radius (km):
-                <input id="radiusInput" type="number" min="0" max="50" step="0.1" value="0" />
-                <span style="opacity:.85">(0=all)</span>
-              </div>
-
-              <button id="applyBtn" class="btn">Apply</button>
+            <div class="miniPill">
+              <span class="lbl">MAX</span>
+              <input id="maxInput" type="number" min="1" max="2000" value="50" />
             </div>
-          </div>
-        </div>
 
-        <!-- Bottom-left stats -->
-        <div class="stats-panel" aria-label="Nearby stats">
-          <div class="statbox" id="stat100"><span>100m:</span> -</div>
-          <div class="statbox" id="stat500"><span>500m:</span> -</div>
-          <div class="statbox" id="stat1k"><span>1km:</span> -</div>
-          <div class="statbox" id="stat2k"><span>2km:</span> -</div>
-          <div class="statbox" id="stat5k"><span>5km:</span> -</div>
+            <div class="miniPill">
+              <span class="lbl">RAD</span>
+              <input id="radiusInput" type="text" value="1km" />
+            </div>
+
+            <button id="applyBtn" class="applyBtn">Apply</button>
+          </div>
         </div>
       </div>
 
-      <aside class="side">
-        <h2 id="sideTitle">Nearby students will appear here</h2>
-        <div id="list" class="list"></div>
-      </aside>
+      <!-- BOTTOM LEFT STATS -->
+      <div class="statsbar">
+        <div class="statChip"><span class="label">100m</span> <span id="stat100">-</span></div>
+        <div class="statChip"><span class="label">500m</span> <span id="stat500">-</span></div>
+        <div class="statChip"><span class="label">1km</span> <span id="stat1k">-</span></div>
+        <div class="statChip"><span class="label">2km</span> <span id="stat2k">-</span></div>
+        <div class="statChip"><span class="label">5km</span> <span id="stat5k">-</span></div>
+      </div>
+
+      <!-- AUTH OVERLAY (Stitch login) -->
+      <div id="authOverlay" class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+        <div class="absolute inset-0 z-0 bg-gradient-to-br from-[#101722] via-[#0b1019] to-black"></div>
+        <div class="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="absolute bottom-[-20%] right-[20%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="relative z-10 w-full max-w-[440px] flex flex-col bg-[#111418]/60 backdrop-blur-xl border border-white/10 shadow-2xl rounded p-8">
+          <div class="flex flex-col items-center text-center mb-8">
+            <div class="w-12 h-12 rounded bg-primary/20 flex items-center justify-center mb-4 border border-primary/10">
+              <span class="material-symbols-outlined text-primary" style="font-size:28px;">security</span>
+            </div>
+
+            <h2 class="text-white text-[26px] font-bold leading-tight tracking-[-0.015em] mb-3 font-display">
+              Staff Login
+            </h2>
+            <p class="text-[#9ca7ba] text-sm font-normal leading-normal max-w-[300px] font-display">
+              This page is protected. Login to view student data.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-5 w-full font-display">
+            <label class="flex flex-col w-full gap-2">
+              <p class="text-white text-sm font-medium leading-normal ml-1">Email</p>
+              <div class="relative flex items-center">
+                <input id="emailInput" type="email"
+                  class="form-input flex w-full resize-none overflow-hidden rounded text-white focus:outline-0 focus:ring-1 focus:ring-primary border border-[#3b4454] bg-[#1b2027] focus:border-primary h-12 placeholder:text-[#6b7280] px-4 pl-11 text-base font-normal leading-normal transition-all"
+                  placeholder="Enter your school email" />
+                <div class="absolute left-3 text-[#9ca7ba] flex items-center justify-center pointer-events-none">
+                  <span class="material-symbols-outlined text-[20px]">mail</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="flex flex-col w-full gap-2">
+              <p class="text-white text-sm font-medium leading-normal ml-1">Password</p>
+              <div class="relative flex w-full items-stretch">
+                <input id="passInput" type="password"
+                  class="form-input flex w-full resize-none overflow-hidden rounded text-white focus:outline-0 focus:ring-1 focus:ring-primary border border-[#3b4454] bg-[#1b2027] focus:border-primary h-12 placeholder:text-[#6b7280] px-4 pl-11 pr-12 text-base font-normal leading-normal transition-all"
+                  placeholder="Enter your password" />
+                <div class="absolute left-3 top-0 h-full text-[#9ca7ba] flex items-center justify-center pointer-events-none">
+                  <span class="material-symbols-outlined text-[20px]">lock</span>
+                </div>
+                <button id="passToggle" type="button"
+                  class="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-[#9ca7ba] hover:text-white transition-colors rounded-r z-20">
+                  <span id="passIcon" class="material-symbols-outlined text-[20px]">visibility</span>
+                </button>
+              </div>
+            </label>
+
+            <div class="pt-2">
+              <button id="loginBtn"
+                class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded h-12 px-5 bg-[#3c83f6] hover:bg-[#2563eb] transition-colors text-white text-base font-bold leading-normal tracking-[0.015em] shadow-lg shadow-blue-900/20">
+                <span class="truncate">Login</span>
+              </button>
+            </div>
+
+            <div class="min-h-[20px] flex items-center justify-center">
+              <p id="authMsg" class="text-xs text-[#545e6f] font-normal">Authorized personnel only</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="absolute bottom-6 z-10">
+          <p class="text-[#545e6f] text-xs font-display">School District Location Services • v2.4.0</p>
+        </div>
+      </div>
+
     </div>
+
+    <!-- SIDEBAR -->
+    <aside class="side glass-panel flex flex-col">
+      <div class="p-6 pb-4 border-b border-white/5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="bg-center bg-no-repeat bg-cover rounded-full h-10 w-10 ring-2 ring-white/10"
+               style="background-image:url('https://i.imgur.com/1Xq9biQ.png');"></div>
+          <div class="flex flex-col min-w-0">
+            <h1 class="text-white text-sm font-bold leading-tight">Student Tracking</h1>
+            <p id="sideSub" class="text-gray-400 text-xs font-normal truncate">—</p>
+          </div>
+        </div>
+
+        <button class="w-full bg-[#282e39] hover:bg-[#323946] text-white text-xs font-medium py-2 rounded-lg transition-colors border border-white/5">
+          List View
+        </button>
+      </div>
+
+      <div id="list" class="list flex-1 space-y-2"></div>
+
+      <div class="p-4 border-t border-white/5 bg-[#111418]/50">
+        <button id="exportBtn"
+          class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-blue-900/20">
+          <span class="truncate">Export Report</span>
+        </button>
+      </div>
+    </aside>
   </div>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Your config -->
+  <script src="./config.js"></script>
+
   <script>
-    /**
-     * Sheet columns:
-     * A Name, B Class, C Section, D Photo (not used on pins), E Lat, F Lng, G Father
-     */
-    const DATA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpSVxTGzDfwqzVE6euHpVY3oH_UzoJL8dnZD0TLwVblcOg85NWg4oWQHSpQPT67bNGXNinI9rFmqd7/pub?gid=413833735&single=true&output=csv";
-    const MAX_SHOW = 2000;
+    /***********************
+     * CONFIG + CLIENTS
+     ***********************/
+    const CFG = window.APP_CONFIG || {};
+    const SUPABASE_URL = CFG.SUPABASE_URL || "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
 
-    // exact coordinates
-    const SPREAD_DUPLICATES = false;
+    // supports GMAPS_KEY naming in your config
+    const GOOGLE_MAPS_API_KEY =
+      CFG.GMAPS_KEY ||
+      CFG.GOOGLE_MAPS_API_KEY ||
+      "YOUR_GOOGLE_MAPS_API_KEY";
 
-    let students = [];
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
+    const MVP_STORE_KEY = "student_map_mvp_v2";
+    const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
+
     let map;
+    let autocomplete;
+
     let placeMarker = null;
     let radiusCircle = null;
+
+    let isAuthed = false;
+
+    let allStudents = [];
+    let allStudentsReady = false;
+    let allStudentsLoading = false;
+
+    let currentResults = [];
+    let currentTotalInRange = 0;
+
     let lastCenter = null;
-    const studentOverlays = [];
+    let selectedIdKey = null;
 
-    function setStatus(msg){ document.getElementById("status").textContent = msg; }
-    function safeText(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
+    let StudentOverlayClass = null;
+    const overlays = [];
 
-    function parseCSV(text){
-      const rows = [];
-      let row = [], field = "", inQuotes = false;
-      for (let i = 0; i < text.length; i++){
-        const c = text[i], next = text[i+1];
-        if (c === '"'){
-          if (inQuotes && next === '"'){ field += '"'; i++; }
-          else inQuotes = !inQuotes;
-          continue;
-        }
-        if (!inQuotes && (c === ',' || c === '\n' || c === '\r')){
-          row.push(field.trim()); field = "";
-          if (c === '\n'){
-            if (row.length > 1 || row[0] !== "") rows.push(row);
-            row = [];
-          }
-          continue;
-        }
-        field += c;
-      }
-      if (field.length || row.length){
-        row.push(field.trim());
-        if (row.length > 1 || row[0] !== "") rows.push(row);
-      }
-      return rows;
+    // UI els
+    const statusBadge = document.getElementById("statusBadge");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const listEl = document.getElementById("list");
+    const sideSub = document.getElementById("sideSub");
+
+    const maxInput = document.getElementById("maxInput");
+    const radiusInput = document.getElementById("radiusInput");
+
+    const applyBtn = document.getElementById("applyBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const searchInput = document.getElementById("searchInput");
+
+    const sideToggle = document.getElementById("sideToggle");
+    const sideToggleIcon = document.getElementById("sideToggleIcon");
+
+    const authOverlay = document.getElementById("authOverlay");
+    const loginBtn = document.getElementById("loginBtn");
+    const emailInput = document.getElementById("emailInput");
+    const passInput = document.getElementById("passInput");
+    const authMsg = document.getElementById("authMsg");
+    const passToggle = document.getElementById("passToggle");
+    const passIcon = document.getElementById("passIcon");
+
+    // Custom dropdown instances
+    let sortDD = null;
+    let routeDD = null;
+
+    /***********************
+     * SAFE HELPERS
+     ***********************/
+    function setStatus(text){ statusBadge.textContent = text; }
+    function esc(s){ return (s ?? "").toString().replace(/[<>]/g, ""); }
+    function safeJsonParse(str, fallback){ try { return JSON.parse(str); } catch { return fallback; } }
+
+    function parseRadiusKm(str){
+      const s = String(str ?? "").trim().toLowerCase();
+      if (!s) return 0;
+      const num = parseFloat(s.replace("km","").trim());
+      return Number.isFinite(num) ? Math.max(0, num) : 0;
     }
 
-    function distanceKm(lat1, lon1, lat2, lon2){
+    function haversineKm(aLat, aLng, bLat, bLng){
       const R = 6371;
-      const toRad = d => d * Math.PI / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
+      const toRad = (x) => x * Math.PI / 180;
+      const dLat = toRad(bLat - aLat);
+      const dLng = toRad(bLng - aLng);
+      const lat1 = toRad(aLat);
+      const lat2 = toRad(bLat);
+
+      const h =
         Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      return 2 * R * Math.asin(Math.sqrt(a));
+        Math.cos(lat1) * Math.cos(lat2) *
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+
+      const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+      return R * c;
     }
 
-    function clearStudentOverlays(){
-      for (const o of studentOverlays) o.setMap(null);
-      studentOverlays.length = 0;
+    function isMvp(student){ return mvpSet.has(student.idKey); }
+    function toggleMvp(idKey){
+      if (mvpSet.has(idKey)) mvpSet.delete(idKey);
+      else mvpSet.add(idKey);
+      localStorage.setItem(MVP_STORE_KEY, JSON.stringify([...mvpSet]));
     }
 
-    function drawRadius(center, radiusKmVal){
+    function clearOverlays(){
+      for (const o of overlays) o.setMap(null);
+      overlays.length = 0;
+      selectedIdKey = null;
+    }
+
+    function setStats(stats){
+      const s = (id, v) => document.getElementById(id).textContent = v;
+      if (!stats){
+        s("stat100","-"); s("stat500","-"); s("stat1k","-"); s("stat2k","-"); s("stat5k","-");
+        return;
+      }
+      s("stat100", String(stats["100m"] ?? 0));
+      s("stat500", String(stats["500m"] ?? 0));
+      s("stat1k",  String(stats["1km"] ?? 0));
+      s("stat2k",  String(stats["2km"] ?? 0));
+      s("stat5k",  String(stats["5km"] ?? 0));
+    }
+
+    function computeStatsFromDistances(distancesKm){
+      const out = { "100m":0, "500m":0, "1km":0, "2km":0, "5km":0 };
+      for (const d of distancesKm){
+        if (d <= 0.1) out["100m"]++;
+        if (d <= 0.5) out["500m"]++;
+        if (d <= 1.0) out["1km"]++;
+        if (d <= 2.0) out["2km"]++;
+        if (d <= 5.0) out["5km"]++;
+      }
+      return out;
+    }
+
+    function setCenterMarker(center){
+      if (!map) return;
+      if (placeMarker) placeMarker.setMap(null);
+      placeMarker = new google.maps.Marker({
+        position: center,
+        map,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillOpacity: 0.18, strokeOpacity: 1, strokeWeight: 2 }
+      });
+    }
+
+    function makeRadiusCircle(center, radiusKm){
+      if (!map) return;
       if (radiusCircle) radiusCircle.setMap(null);
       radiusCircle = null;
-      if (radiusKmVal > 0){
+      if (radiusKm > 0){
         radiusCircle = new google.maps.Circle({
           center,
-          radius: radiusKmVal * 1000,
-          strokeOpacity: 1,
+          radius: radiusKm * 1000,
+          strokeOpacity: 0.9,
           strokeWeight: 2,
           fillOpacity: 0.08,
           map
@@ -380,275 +767,747 @@
       }
     }
 
-    function updateStats(center){
-      const el100 = document.getElementById("stat100");
-      const el500 = document.getElementById("stat500");
-      const el1k  = document.getElementById("stat1k");
-      const el2k  = document.getElementById("stat2k");
-      const el5k  = document.getElementById("stat5k");
-
-      if (!center || !students.length){
-        el100.innerHTML = `<span>100m:</span> -`;
-        el500.innerHTML = `<span>500m:</span> -`;
-        el1k.innerHTML  = `<span>1km:</span> -`;
-        el2k.innerHTML  = `<span>2km:</span> -`;
-        el5k.innerHTML  = `<span>5km:</span> -`;
-        return;
+    function getActiveCenter(){
+      if (lastCenter) return lastCenter;
+      if (map){
+        const c = map.getCenter();
+        if (c) return { lat: c.lat(), lng: c.lng() };
       }
-
-      let c100=0, c500=0, c1=0, c2=0, c5=0;
-      for (const s of students){
-        const d = distanceKm(center.lat, center.lng, s.lat, s.lon);
-        if (d <= 0.1) c100++;
-        if (d <= 0.5) c500++;
-        if (d <= 1.0) c1++;
-        if (d <= 2.0) c2++;
-        if (d <= 5.0) c5++;
-      }
-
-      el100.innerHTML = `<span>100m:</span> ${c100}`;
-      el500.innerHTML = `<span>500m:</span> ${c500}`;
-      el1k.innerHTML  = `<span>1km:</span> ${c1}`;
-      el2k.innerHTML  = `<span>2km:</span> ${c2}`;
-      el5k.innerHTML  = `<span>5km:</span> ${c5}`;
+      return DEFAULT_CENTER;
     }
 
-    function renderSidebar(list, totalInRange, center){
-      const title = document.getElementById("sideTitle");
-      const el = document.getElementById("list");
-      el.innerHTML = "";
+    /***********************
+     * CUSTOM DROPDOWN (your UI)
+     ***********************/
+    class CustomDropdown {
+      constructor(mountEl, { placeholder, options, value, onChange, widthPx }){
+        this.mountEl = mountEl;
+        this.onChange = onChange || (()=>{});
+        this.options = options || [];
+        this.value = value ?? "";
+        this.placeholder = placeholder || "Select…";
 
-      if (!center){
-        title.textContent = "Nearby students will appear here";
-        return;
-      }
+        mountEl.style.width = widthPx ? `${widthPx}px` : "";
 
-      const radiusKmVal = Math.max(0, parseFloat(document.getElementById("radiusInput").value || "0"));
-      const suffix = radiusKmVal > 0 ? ` within ${radiusKmVal} km` : ` (all)`;
-      title.textContent = `Showing ${list.length} students out of ${totalInRange}${suffix}`;
-
-      for (const s of list){
-        const card = document.createElement("div");
-        card.className = "rowcard";
-        card.innerHTML = `
-          <div class="rankPill">${s._rank}</div>
-          <div class="meta">
-            <p class="name">${safeText(s.name)}</p>
-            <p class="sub">Class ${safeText(s.class)} • Section ${safeText(s.section)}</p>
-            <p class="sub">Father: ${safeText(s.father || "-")}</p>
-            <p class="sub">${s._dist.toFixed(2)} km away</p>
+        this.container = document.createElement("div");
+        this.container.className = "custom-select-container";
+        this.container.innerHTML = `
+          <div class="select-trigger" role="button" tabindex="0">
+            <span class="triggerText">${esc(this.placeholder)}</span>
+            <svg class="arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
+          <div class="options-menu"></div>
         `;
-        el.appendChild(card);
-      }
-    }
+        mountEl.appendChild(this.container);
 
-    async function loadStudents(){
-      setStatus("Loading sheet…");
-      const res = await fetch(DATA_CSV_URL);
-      if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
-      const text = await res.text();
+        this.trigger = this.container.querySelector(".select-trigger");
+        this.triggerTextEl = this.container.querySelector(".triggerText");
+        this.menu = this.container.querySelector(".options-menu");
 
-      if (text.trim().startsWith("<!DOCTYPE html") || text.includes("<html")){
-        throw new Error("URL returned HTML (not CSV). Use a published CSV link.");
-      }
-
-      const rows = parseCSV(text);
-      const out = [];
-
-      for (const r of rows){
-        if (r.length < 6) continue;
-        const lat = parseFloat(r[4]);
-        const lon = parseFloat(r[5]);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-
-        out.push({
-          name: r[0],
-          class: r[1],
-          section: r[2],
-          photo: r[3],
-          lat, lon,
-          father: r[6] || ""
+        this.trigger.addEventListener("click", () => this.toggle());
+        this.trigger.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " "){
+            e.preventDefault();
+            this.toggle();
+          }
         });
+
+        document.addEventListener("click", (e) => {
+          if (!this.container.contains(e.target)) this.close();
+        });
+
+        this.render();
+        if (this.value !== undefined) this.setValue(this.value, false);
       }
 
-      students = out;
-      setStatus(`Loaded ${students.length} students • Search or click map`);
-      updateStats(null);
-      return out;
+      setOptions(options){
+        this.options = options || [];
+        this.render();
+        // if current value no longer exists, reset
+        if (this.value && !this.options.some(o => o.value === this.value)){
+          this.setValue("", true);
+        } else {
+          this.syncTriggerText();
+        }
+      }
+
+      render(){
+        this.menu.innerHTML = "";
+        for (const opt of this.options){
+          const div = document.createElement("div");
+          div.className = "option";
+          div.dataset.value = opt.value;
+          div.textContent = opt.label;
+
+          if (opt.value === this.value) div.classList.add("selected");
+
+          div.addEventListener("click", () => {
+            this.setValue(opt.value, true);
+            this.close();
+          });
+
+          this.menu.appendChild(div);
+        }
+        this.syncTriggerText();
+      }
+
+      syncTriggerText(){
+        const found = this.options.find(o => o.value === this.value);
+        this.triggerTextEl.textContent = found ? found.label : this.placeholder;
+      }
+
+      setValue(val, fire=true){
+        this.value = val;
+        // update selected classes
+        [...this.menu.querySelectorAll(".option")].forEach(el => {
+          el.classList.toggle("selected", el.dataset.value === val);
+        });
+        this.syncTriggerText();
+        if (fire) this.onChange(val);
+      }
+
+      toggle(){ this.container.classList.toggle("open"); }
+      close(){ this.container.classList.remove("open"); }
+      getValue(){ return this.value; }
     }
 
-    async function initApp(){
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 27.6094, lng: 75.1399 },
-        zoom: 12,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true
+    /***********************
+     * DATA NORMALIZATION + LOAD ALL ONCE
+     ***********************/
+    function normalizeStudent(row){
+      if (!row) return null;
+
+      const lat = Number(
+        row.student_latitude ?? row.latitude ?? row.lat
+      );
+      const lng = Number(
+        row.student_longitude ?? row.longitude ?? row.lng ?? row.lon
+      );
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+      const name = String(row.student_name ?? row.name ?? "").trim();
+      const cls  = String(row.student_class ?? row.class ?? "").trim();
+      const sec  = String(row.student_section ?? row.section ?? "").trim();
+
+      // ✅ FIX: father field mapping (covers multiple possible DB column names)
+      const father = String(
+        row.students_parent ??
+        row.student_parent ??
+        row.parent ??
+        row.parent_name ??
+        row.father ??
+        row.father_name ??
+        ""
+      ).trim();
+
+      const route = String(row.route_no ?? row.route ?? row.route_number ?? "").trim();
+      const sr = String(row.student_sr ?? row.sr ?? "").trim();
+      const npsRaw = row.nps_score ?? row.nps ?? null;
+      const nps = (npsRaw === null || npsRaw === undefined || npsRaw === "") ? null : Number(npsRaw);
+      const id = row.id ?? null;
+
+      const idKey =
+        id != null ? `id:${id}` :
+        sr ? `sr:${sr}` :
+        `k:${name}|${cls}|${sec}|${lat}|${lng}|${route}`;
+
+      return {
+        id,
+        idKey,
+        name,
+        class: cls,
+        section: sec,
+        father,
+        route_no: route,
+        nps_score: Number.isFinite(nps) ? nps : null,
+        lat, lng
+      };
+    }
+
+    async function loadAllStudentsOnce(){
+      if (allStudentsReady || allStudentsLoading) return;
+      allStudentsLoading = true;
+      setStatus("Loading students…");
+      sideSub.textContent = "Loading…";
+
+      const pageSize = 1000;
+      const rawAll = [];
+      let page = 0;
+
+      while (true){
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data, error } = await sb.from("students").select("*").range(from, to);
+        if (error){
+          console.error(error);
+          setStatus("Load error");
+          sideSub.textContent = "Failed to load students";
+          allStudentsLoading = false;
+          return;
+        }
+        if (!data || data.length === 0) break;
+
+        rawAll.push(...data);
+        if (data.length < pageSize) break;
+        page++;
+      }
+
+      // Deduplicate by idKey
+      const dedup = new Map();
+      for (const r of rawAll){
+        const s = normalizeStudent(r);
+        if (!s) continue;
+        if (!dedup.has(s.idKey)) dedup.set(s.idKey, s);
+      }
+
+      allStudents = [...dedup.values()];
+      allStudentsReady = true;
+      allStudentsLoading = false;
+
+      buildRouteOptions();
+
+      setStatus(`Connected • ${allStudents.length} students`);
+      sideSub.textContent = `${allStudents.length} students loaded`;
+    }
+
+    function buildRouteOptions(){
+      const set = new Set();
+      for (const s of allStudents){
+        const v = (s.route_no ?? "").toString().trim();
+        if (v) set.add(v);
+      }
+      const routes = [...set].sort((a,b)=>{
+        const na = Number(a), nb = Number(b);
+        const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+        if (aNum && bNum) return na - nb;
+        if (aNum && !bNum) return -1;
+        if (!aNum && bNum) return 1;
+        return String(a).localeCompare(String(b));
       });
 
-      class StudentOverlay extends google.maps.OverlayView {
-        constructor(position, student, rank){
+      const opts = [
+        { value: "", label: "Route: All" },
+        ...routes.map(r => ({ value: r, label: `Route #${r}` }))
+      ];
+      routeDD.setOptions(opts);
+    }
+
+    /***********************
+     * SORTING (MVP always on top)
+     ***********************/
+    function sortMode(){
+      return sortDD.getValue() || "distance";
+    }
+
+    function sortWithMvp(list, mode){
+      const m = mode || "distance";
+      return list.sort((a,b)=>{
+        const am = isMvp(a) ? 1 : 0;
+        const bm = isMvp(b) ? 1 : 0;
+        if (am !== bm) return bm - am;
+
+        const ad = a.dist_km ?? Infinity;
+        const bd = b.dist_km ?? Infinity;
+
+        const an = (a.nps_score == null || !Number.isFinite(a.nps_score)) ? -Infinity : a.nps_score;
+        const bn = (b.nps_score == null || !Number.isFinite(b.nps_score)) ? -Infinity : b.nps_score;
+
+        if (m === "distance"){
+          if (ad !== bd) return ad - bd;
+          return String(a.name).localeCompare(String(b.name));
+        }
+        if (m === "nps"){
+          if (bn !== an) return bn - an;
+          if (ad !== bd) return ad - bd;
+          return String(a.name).localeCompare(String(b.name));
+        }
+        // both
+        if (bn !== an) return bn - an;
+        if (ad !== bd) return ad - bd;
+        return String(a.name).localeCompare(String(b.name));
+      });
+    }
+
+    /***********************
+     * AUTH
+     ***********************/
+    async function ensureAuth(){
+      const { data: { session } } = await sb.auth.getSession();
+
+      if (session?.user){
+        isAuthed = true;
+        authOverlay.style.display = "none";
+        logoutBtn.style.display = "inline-flex";
+        await loadAllStudentsOnce();
+        setStatus(`Connected • ${allStudents.length} students`);
+        return true;
+      }
+
+      isAuthed = false;
+      authOverlay.style.display = "flex";
+      logoutBtn.style.display = "none";
+      setStatus("Login required");
+      sideSub.textContent = "—";
+      return false;
+    }
+
+    async function login(){
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+
+      authMsg.textContent = "Signing in…";
+      authMsg.className = "text-xs text-[#9ca7ba] font-medium";
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error){
+        authMsg.textContent = error.message;
+        authMsg.className = "text-xs text-red-400 font-semibold";
+        return;
+      }
+      authMsg.textContent = "Signed in ✅";
+      authMsg.className = "text-xs text-emerald-300 font-semibold";
+      await ensureAuth();
+    }
+
+    async function logout(){
+      await sb.auth.signOut();
+      clearState();
+      await ensureAuth();
+    }
+
+    function bindAuthUI(){
+      if (window.__AUTH_UI_BOUND__) return;
+      window.__AUTH_UI_BOUND__ = true;
+
+      loginBtn.addEventListener("click", login);
+      logoutBtn.addEventListener("click", logout);
+
+      emailInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+      passInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+
+      passToggle?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const isHidden = passInput.type === "password";
+        passInput.type = isHidden ? "text" : "password";
+        passIcon.textContent = isHidden ? "visibility_off" : "visibility";
+      });
+    }
+
+    /***********************
+     * OVERLAY PINS
+     ***********************/
+    function buildOverlayClass(){
+      StudentOverlayClass = class StudentOverlay extends google.maps.OverlayView {
+        constructor(position, student){
           super();
           this.position = new google.maps.LatLng(position.lat, position.lng);
           this.student = student;
-          this.rank = rank;
           this.div = null;
         }
-
         onAdd(){
           const div = document.createElement("div");
           div.className = "gm-student";
 
-          const svg = `
-            <svg class="pin-svg" viewBox="0 0 32 44" aria-label="Pin ${this.rank}">
-              <path d="M16 43 C16 43 4 28.9 4 16.2 C4 8.0 9.8 2 16 2 C22.2 2 28 8.0 28 16.2 C28 28.9 16 43 16 43 Z"
-                    fill="#e53935" stroke="rgba(0,0,0,0.20)" stroke-width="1"></path>
-              <text x="16" y="17" text-anchor="middle" dominant-baseline="middle"
-                    fill="#ffffff" font-size="12" font-weight="900">${this.rank}</text>
-            </svg>
-          `;
+          const rank = this.student.rank ?? "";
+          const dist = Number(this.student.dist_km ?? 0);
+          const distTxt = Number.isFinite(dist) ? `${dist.toFixed(2)} km` : "-";
+          const routeTxt = this.student.route_no ? `Route #${esc(this.student.route_no)}` : "Route -";
+          const npsTxt = (this.student.nps_score == null || !Number.isFinite(this.student.nps_score)) ? "-" : String(this.student.nps_score);
 
           div.innerHTML = `
-            <div class="gm-card">
-              <p class="t1">${safeText(this.student.name)}</p>
-              <p class="t2">#${this.rank} • ${this.student._dist.toFixed(2)} km</p>
-              <p class="t2">Class ${safeText(this.student.class)} • Sec ${safeText(this.student.section)}</p>
-              <div class="father">Father: ${safeText(this.student.father || "-")}</div>
+            <div class="gm-popover">
+              <div class="flex items-start gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold truncate">${esc(this.student.name)}</h3>
+                    <span class="text-yellow-400 text-[12px] font-extrabold">#${esc(rank)}</span>
+                  </div>
+                  <p class="text-xs text-white/60">Class ${esc(this.student.class)} • Sec ${esc(this.student.section)} • ${routeTxt}</p>
+                  <p class="text-[11px] text-white/50 mt-2">Dist: ${esc(distTxt)} • NPS: ${esc(npsTxt)}</p>
+
+                  <div class="gm-father mt-3 text-xs text-white/80 border-t border-white/10 pt-3">
+                    Father: ${esc(this.student.father || "-")}
+                  </div>
+                </div>
+              </div>
+              <div class="tri"></div>
             </div>
-            <div class="gm-stem"></div>
-            <div class="gm-pin-wrap" title="Click to view">${svg}</div>
+
+            <div class="gm-pin-wrap" title="Click to view">
+              <div class="gm-pin">${esc(rank)}</div>
+            </div>
           `;
 
-          const pinWrap = div.querySelector(".gm-pin-wrap");
-          const card = div.querySelector(".gm-card");
-
-          pinWrap.addEventListener("click", (e) => {
+          div.querySelector(".gm-pin-wrap").addEventListener("click", (e) => {
             e.stopPropagation();
-            for (const o of studentOverlays){
-              if (o.div) o.div.classList.remove("selected");
-            }
-            const willSelect = !div.classList.contains("selected");
-            if (willSelect){
-              div.classList.add("selected");
-              div.style.zIndex = "999999";
-            } else {
-              div.classList.remove("selected");
-              div.style.zIndex = "";
-            }
+            selectStudent(this.student.idKey);
           });
 
-          card.addEventListener("click", (e) => e.stopPropagation());
+          div.querySelector(".gm-popover").addEventListener("click", (e) => e.stopPropagation());
 
           this.div = div;
           this.getPanes().overlayMouseTarget.appendChild(div);
-        }
 
+          if (this.student.idKey === selectedIdKey){
+            this.div.classList.add("selected");
+          }
+        }
         draw(){
           if (!this.div) return;
           const proj = this.getProjection();
           if (!proj) return;
-
           const point = proj.fromLatLngToDivPixel(this.position);
           if (!point) return;
 
           this.div.style.left = point.x + "px";
           this.div.style.top  = point.y + "px";
-
-          if (!this.div.style.zIndex){
-            this.div.style.zIndex = String(100000 + Math.round(point.y));
-          }
+          this.div.style.zIndex = String(100000 + Math.round(point.y));
         }
-
         onRemove(){
           if (this.div){
             this.div.remove();
             this.div = null;
           }
         }
+      };
+    }
+
+    function buildOverlays(list){
+      clearOverlays();
+      if (!map || !StudentOverlayClass) return;
+      for (const s of list){
+        const overlay = new StudentOverlayClass({ lat: s.lat, lng: s.lng }, s);
+        overlay.setMap(map);
+        overlays.push(overlay);
+      }
+    }
+
+    function selectStudent(idKey){
+      selectedIdKey = idKey;
+
+      for (const o of overlays){
+        if (o.div){
+          if (o.student.idKey === idKey) o.div.classList.add("selected");
+          else o.div.classList.remove("selected");
+        }
+      }
+      renderSidebar(currentResults);
+    }
+
+    function smoothZoomTo(targetZoom){
+  const stepMs = 90;
+  const current = map.getZoom() || 0;
+  if (current === targetZoom) return;
+
+  const step = current < targetZoom ? 1 : -1;
+
+  const tick = () => {
+    const z = map.getZoom() || 0;
+    if ((step > 0 && z >= targetZoom) || (step < 0 && z <= targetZoom)) return;
+    map.setZoom(z + step);
+    setTimeout(tick, stepMs);
+  };
+
+  tick();
+}
+
+function panToStudent(s){
+  if (!map) return;
+
+  const target = { lat: s.lat, lng: s.lng };
+  const targetZoom = Math.max(map.getZoom() || 12, 16);
+
+  // ✅ smooth pan
+  map.panTo(target);
+
+  // ✅ smooth zoom AFTER pan finishes (idle fires after movement)
+  google.maps.event.addListenerOnce(map, "idle", () => {
+    smoothZoomTo(targetZoom);
+  });
+
+  selectStudent(s.idKey);
+}
+
+
+    /***********************
+     * SIDEBAR RENDER + CLICK TO FOCUS
+     ***********************/
+    function renderSidebar(list){
+      listEl.innerHTML = "";
+
+      const routeVal = routeDD.getValue();
+      const radiusKm = parseRadiusKm(radiusInput.value);
+
+      if (!allStudentsReady){
+        sideSub.textContent = "Loading…";
+      } else if (!lastCenter && !routeVal){
+        sideSub.textContent = `${allStudents.length} students loaded`;
+      } else if (routeVal){
+        sideSub.textContent = `Route #${routeVal} • Showing ${list.length} out of ${currentTotalInRange}`;
+      } else {
+        const suffix = radiusKm > 0 ? `within ${radiusKm} km` : "all";
+        sideSub.textContent = `Showing ${list.length} out of ${currentTotalInRange} • ${suffix}`;
       }
 
-      function runSearch(center){
-        if (!students.length) return;
-        lastCenter = center;
-
-        updateStats(center);
-
-        for (const o of studentOverlays){
-          if (o.div) o.div.classList.remove("selected");
-        }
-
-        if (placeMarker) placeMarker.setMap(null);
-        placeMarker = new google.maps.Marker({
-          position: center,
-          map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 7,
-            fillOpacity: 0.25,
-            strokeOpacity: 1,
-            strokeWeight: 2
-          }
-        });
-
-        const n = Math.max(1, Math.min(MAX_SHOW, parseInt(document.getElementById("countInput").value || "10", 10)));
-        const radiusKmVal = Math.max(0, parseFloat(document.getElementById("radiusInput").value || "0"));
-        drawRadius(center, radiusKmVal);
-
-        let scored = students.map(s => ({
-          ...s,
-          _dist: distanceKm(center.lat, center.lng, s.lat, s.lon)
-        }));
-
-        if (radiusKmVal > 0) scored = scored.filter(s => s._dist <= radiusKmVal);
-        scored.sort((a,b) => a._dist - b._dist);
-
-        const totalInRange = scored.length;
-
-        for (let i = 0; i < scored.length; i++){
-          scored[i]._rank = i + 1;
-        }
-
-        const list = scored.slice(0, n);
-
-        clearStudentOverlays();
-
-        for (const s of list){
-          const pos = { lat: s.lat, lng: s.lon }; // exact coordinates
-          const overlay = new StudentOverlay(pos, s, s._rank);
-          overlay.setMap(map);
-          studentOverlays.push(overlay);
-        }
-
-        renderSidebar(list, totalInRange, center);
+      if (!list || list.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "text-sm text-white/60 p-3";
+        empty.textContent = routeVal ? "No students for this route." : "Click on the map or search a place to see students.";
+        listEl.appendChild(empty);
+        return;
       }
 
-      map.addListener("click", (e) => {
-        for (const o of studentOverlays){
-          if (o.div) o.div.classList.remove("selected");
-        }
-        runSearch({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      for (const s of list){
+        const isActive = (s.idKey === selectedIdKey);
+        const distTxt = Number.isFinite(s.dist_km) ? `${s.dist_km.toFixed(2)} km` : "-";
+        const npsTxt = (s.nps_score == null || !Number.isFinite(s.nps_score)) ? "-" : String(s.nps_score);
+        const fatherTxt = s.father && s.father.trim() ? s.father.trim() : "-";
+
+        const starFilled = isMvp(s);
+        const card = document.createElement("div");
+
+        card.className =
+          "group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all " +
+          (isActive
+            ? "bg-primary/10 border border-primary/20"
+            : "hover:bg-white/5 border border-transparent hover:border-white/5");
+
+        // ✅ FIX: use actual data-idkey attribute for reliable clicks
+        card.setAttribute("data-idkey", s.idKey);
+
+        card.innerHTML = `
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+            isActive ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+                     : "bg-white/5 text-white/70 group-hover:bg-white/10"
+          } text-xs font-black transition-colors">${esc(s.rank)}</div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-sm ${isActive ? "font-bold text-white" : "font-semibold text-white/90 group-hover:text-white"} truncate">${esc(s.name)}</p>
+
+              <button class="mvpBtn material-symbols-outlined text-[18px] ${starFilled ? "text-yellow-400" : "text-yellow-400/40"}"
+                      data-action="mvp" data-idkey="${esc(s.idKey)}" title="Mark MVP"
+                      style="font-variation-settings:'FILL' ${starFilled ? 1 : 0}, 'wght' 700;">
+                star
+              </button>
+            </div>
+
+            <p class="text-xs text-white/55 truncate">
+              Class ${esc(s.class)} • Sec ${esc(s.section)} • ${s.route_no ? `Route #${esc(s.route_no)}` : "Route -"}
+            </p>
+
+            <p class="text-[11px] text-white/45 mt-1 truncate">
+              Father: ${esc(fatherTxt)} • NPS: ${esc(npsTxt)} • ${esc(distTxt)}
+            </p>
+          </div>
+        `;
+
+        listEl.appendChild(card);
+      }
+    }
+
+    listEl.addEventListener("click", (e) => {
+      const mvpBtn = e.target.closest("[data-action='mvp']");
+      if (mvpBtn){
+        e.stopPropagation();
+        const idKey = mvpBtn.getAttribute("data-idkey");
+        if (!idKey) return;
+        toggleMvp(idKey);
+        rerunCurrentMode();
+        return;
+      }
+
+      const card = e.target.closest("[data-idkey]");
+      if (!card) return;
+
+      const idKey = card.getAttribute("data-idkey");
+      const s = currentResults.find(x => x.idKey === idKey);
+      if (!s) return;
+
+      // ✅ Focus map on student
+      panToStudent(s);
+    });
+
+    /***********************
+     * SEARCH MODES
+     ***********************/
+    function rerunCurrentMode(){
+      const routeVal = routeDD.getValue();
+      const center = getActiveCenter();
+      if (routeVal) runRouteMode(center);
+      else if (lastCenter) runNearbyMode(center);
+      else renderSidebar(currentResults);
+    }
+
+    function runNearbyMode(center){
+      if (!allStudentsReady) return;
+
+      lastCenter = center;
+      setCenterMarker(center);
+
+      const radiusKm = parseRadiusKm(radiusInput.value);
+      makeRadiusCircle(center, radiusKm);
+
+      const maxN = Math.max(1, Math.min(2000, parseInt(maxInput.value || "50", 10)));
+      const mode = sortMode();
+
+      setStatus("Searching…");
+
+      const withDist = [];
+      for (const s of allStudents){
+        const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
+        if (radiusKm > 0 && d > radiusKm) continue;
+        withDist.push({ ...s, dist_km: d });
+      }
+
+      currentTotalInRange = withDist.length;
+
+      sortWithMvp(withDist, mode);
+      const sliced = withDist.slice(0, maxN);
+
+      for (let i=0;i<sliced.length;i++) sliced[i].rank = i+1;
+
+      currentResults = sliced;
+
+      setStats(computeStatsFromDistances(withDist.map(x => x.dist_km)));
+
+      buildOverlays(currentResults);
+      renderSidebar(currentResults);
+
+      setStatus(`Connected • ${allStudents.length} students`);
+    }
+
+    function runRouteMode(center){
+      if (!allStudentsReady) return;
+
+      lastCenter = center;
+      setCenterMarker(center);
+
+      if (radiusCircle) radiusCircle.setMap(null);
+      radiusCircle = null;
+
+      const routeVal = routeDD.getValue();
+      const mode = sortMode();
+
+      if (!routeVal){
+        runNearbyMode(center);
+        return;
+      }
+
+      setStatus("Loading route…");
+
+      const filtered = [];
+      for (const s of allStudents){
+        if (String(s.route_no || "").trim() !== String(routeVal).trim()) continue;
+        const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
+        filtered.push({ ...s, dist_km: d });
+      }
+
+      currentTotalInRange = filtered.length;
+
+      sortWithMvp(filtered, mode);
+
+      // Route mode ignores MAX + Radius and shows all
+      for (let i=0;i<filtered.length;i++) filtered[i].rank = i+1;
+
+      currentResults = filtered;
+
+      setStats(computeStatsFromDistances(filtered.map(x => x.dist_km)));
+
+      buildOverlays(currentResults);
+      renderSidebar(currentResults);
+
+      setStatus(`Connected • ${allStudents.length} students`);
+    }
+
+    function clearState(){
+      clearOverlays();
+      currentResults = [];
+      currentTotalInRange = 0;
+      lastCenter = null;
+
+      if (placeMarker) placeMarker.setMap(null);
+      placeMarker = null;
+
+      if (radiusCircle) radiusCircle.setMap(null);
+      radiusCircle = null;
+
+      setStats(null);
+      renderSidebar([]);
+      sideSub.textContent = allStudentsReady ? `${allStudents.length} students loaded` : "—";
+      setStatus(allStudentsReady ? `Connected • ${allStudents.length} students` : "Connected");
+    }
+
+    /***********************
+     * EXPORT
+     ***********************/
+    function exportCurrent(){
+      if (!currentResults || currentResults.length === 0){
+        setStatus("Nothing to export");
+        return;
+      }
+      const rows = [["Rank","Name","Class","Section","Father","Route","NPS","Distance(km)","MVP"]];
+      for (const s of currentResults){
+        rows.push([
+          s.rank,
+          s.name,
+          s.class,
+          s.section,
+          s.father || "",
+          s.route_no,
+          s.nps_score ?? "",
+          (Number.isFinite(s.dist_km) ? s.dist_km.toFixed(3) : ""),
+          isMvp(s) ? "YES" : ""
+        ]);
+      }
+      const csv = rows.map(r => r.map(v => {
+        const t = String(v ?? "");
+        if (/[,"\n]/.test(t)) return `"${t.replace(/"/g,'""')}"`;
+        return t;
+      }).join(",")).join("\n");
+
+      const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "student_report.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    /***********************
+     * MAP INIT
+     ***********************/
+    async function initMapApp(){
+      const darkStyle = [
+        { elementType: "geometry", stylers: [{ color: "#1b2027" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#9ca7ba" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#1b2027" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#2a3442" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1b2027" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0b1220" }] },
+        { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#2a3442" }] },
+      ];
+
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: DEFAULT_CENTER,
+        zoom: 12,
+        styles: darkStyle,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true
       });
 
-      document.getElementById("applyBtn").addEventListener("click", () => {
-        if (lastCenter) runSearch(lastCenter);
-      });
+      buildOverlayClass();
 
-      document.getElementById("clearBtn").addEventListener("click", () => {
-        clearStudentOverlays();
-        if (placeMarker) placeMarker.setMap(null);
-        placeMarker = null;
-        if (radiusCircle) radiusCircle.setMap(null);
-        radiusCircle = null;
-        lastCenter = null;
-
-        updateStats(null);
-        document.getElementById("sideTitle").textContent = "Nearby students will appear here";
-        document.getElementById("list").innerHTML = "";
-      });
-
-      const input = document.getElementById("searchInput");
-      const autocomplete = new google.maps.places.Autocomplete(input, {
+      // Autocomplete
+      autocomplete = new google.maps.places.Autocomplete(searchInput, {
         fields: ["geometry", "name", "formatted_address"],
         componentRestrictions: { country: "in" }
       });
@@ -656,33 +1515,160 @@
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (!place?.geometry?.location){
-          setStatus("No result. Try a different search.");
+          setStatus("No result. Try another search.");
           return;
         }
         const loc = place.geometry.location;
         const center = { lat: loc.lat(), lng: loc.lng() };
         map.panTo(center);
         map.setZoom(15);
-        runSearch(center);
+
+        const routeVal = routeDD.getValue();
+        if (routeVal) runRouteMode(center);
+        else runNearbyMode(center);
       });
 
-      const data = await loadStudents();
-      if (!data.length){
-        setStatus("No valid rows found (check Latitude/Longitude columns).");
-        return;
-      }
-      const bounds = new google.maps.LatLngBounds();
-      for (const s of data) bounds.extend({ lat: s.lat, lng: s.lon });
-      map.fitBounds(bounds);
+      map.addListener("click", (e) => {
+        const center = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        const routeVal = routeDD.getValue();
+        if (routeVal) runRouteMode(center);
+        else runNearbyMode(center);
+      });
+
+      // UI events
+      clearBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        clearState();
+      });
+
+      applyBtn.addEventListener("click", () => {
+        const center = getActiveCenter();
+        const routeVal = routeDD.getValue();
+        if (routeVal) runRouteMode(center);
+        else {
+          if (!lastCenter){
+            setStatus("Click map or search first");
+            return;
+          }
+          runNearbyMode(center);
+        }
+      });
+
+      exportBtn.addEventListener("click", exportCurrent);
     }
 
-    window.initApp = initApp;
-  </script>
+    function loadGoogleMaps(){
+      return new Promise((resolve, reject) => {
+        if (window.google?.maps){
+          resolve();
+          return;
+        }
+        window.__initMapsCallback = async () => {
+          try{
+            await initMapApp();
+            resolve();
+          }catch(err){
+            console.error(err);
+            reject(err);
+          }
+        };
 
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC5VODPbqv2q3QGfv9DAtW7VX8_gQHvWlo&libraries=places&callback=initApp"
-    async
-    defer
-  ></script>
+        const s = document.createElement("script");
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places&callback=__initMapsCallback`;
+        s.async = true;
+        s.defer = true;
+        s.onerror = () => reject(new Error("Failed to load Google Maps"));
+        document.head.appendChild(s);
+      });
+    }
+
+    // Global promise error -> show on badge
+    window.addEventListener("unhandledrejection", (e) => {
+      console.error(e);
+      const msg = (e.reason && (e.reason.message || e.reason)) || "Unknown error";
+      setStatus("Error: " + msg);
+    });
+
+    /***********************
+     * SIDEBAR COLLAPSE
+     ***********************/
+    function syncSideToggleIcon(){
+      const collapsed = document.body.classList.contains("side-collapsed");
+      sideToggleIcon.textContent = collapsed ? "chevron_left" : "chevron_right";
+      sideToggle.title = collapsed ? "Show sidebar" : "Hide sidebar";
+    }
+    sideToggle.addEventListener("click", () => {
+      document.body.classList.toggle("side-collapsed");
+      syncSideToggleIcon();
+      // map needs a resize to render correctly after layout change
+      setTimeout(() => { if (map) google.maps.event.trigger(map, "resize"); }, 250);
+    });
+    syncSideToggleIcon();
+
+    /***********************
+     * START
+     ***********************/
+    (async () => {
+      // Bind auth UI immediately
+      bindAuthUI();
+
+      // Create dropdowns (Sort + Route)
+      sortDD = new CustomDropdown(document.getElementById("sortDropdown"), {
+        placeholder: "Distance",
+        value: "distance",
+        widthPx: 160,
+        options: [
+          { value: "distance", label: "Distance" },
+          { value: "nps", label: "NPS" },
+          { value: "both", label: "NPS + Distance" },
+        ],
+        onChange: () => rerunCurrentMode()
+      });
+
+      routeDD = new CustomDropdown(document.getElementById("routeDropdown"), {
+        placeholder: "Route: All",
+        value: "",
+        widthPx: 160,
+        options: [{ value: "", label: "Route: All" }],
+        onChange: () => {
+          const center = getActiveCenter();
+          const routeVal = routeDD.getValue();
+          if (routeVal) runRouteMode(center);
+          else {
+            if (lastCenter) runNearbyMode(center);
+            else clearState();
+          }
+        }
+      });
+
+      // Validate Supabase keys
+      if (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_") || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes("YOUR_")){
+        authOverlay.style.display = "flex";
+        authMsg.textContent = "Add Supabase keys in config.js";
+        authMsg.className = "text-xs text-red-400 font-semibold";
+        setStatus("Config required");
+        return;
+      }
+
+      // Show login / session state immediately
+      await ensureAuth();
+
+      // Keep auth state synced
+      sb.auth.onAuthStateChange(async () => { await ensureAuth(); });
+
+      // Load students if logged in already
+      if (isAuthed) await loadAllStudentsOnce();
+
+      // Load maps
+      if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.includes("YOUR_")){
+        setStatus("Maps key missing");
+        return;
+      }
+      await loadGoogleMaps();
+
+      // initial sidebar
+      if (allStudentsReady) renderSidebar([]);
+    })();
+  </script>
 </body>
 </html>
