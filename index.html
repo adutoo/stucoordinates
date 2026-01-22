@@ -490,6 +490,10 @@
           <!-- Right -->
           <div class="top-right flex items-center gap-2 justify-end">
             <div class="custom-select-container" id="sortDropdown"></div>
+
+            <!-- ✅ Pin Color dropdown -->
+            <div class="custom-select-container" id="pinColorDropdown"></div>
+
             <div class="custom-select-container" id="routeDropdown"></div>
 
             <div class="miniPill">
@@ -639,6 +643,9 @@
     // ✅ Persist radius so it never “resets after inactivity”
     const RADIUS_STORE_KEY = "student_map_radius_v1";
 
+    // ✅ Pin color mode dropdown (route / red)
+    const PIN_COLOR_MODE_KEY = "student_map_pin_color_mode_v1";
+
     const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
 
     let map;
@@ -688,6 +695,7 @@
 
     // Custom dropdown instances
     let sortDD = null;
+    let pinColorDD = null;  // ✅ NEW
     let routeDD = null;
 
     /***********************
@@ -721,26 +729,38 @@
       return R * c;
     }
 
-    // ✅ Route colors (stable per route)
     // ✅ Route colors (unique per route in current dataset)
-let ROUTE_COLOR_MAP = new Map();
+    let ROUTE_COLOR_MAP = new Map();
 
-function buildRouteColorMap(routes){
-  ROUTE_COLOR_MAP = new Map();
-  for (let i = 0; i < routes.length; i++){
-    const r = String(routes[i]).trim();
-    // Golden-angle spacing for visually distinct hues
-    const hue = (i * 137.508) % 360;
-    ROUTE_COLOR_MAP.set(r, `hsl(${hue.toFixed(0)}, 90%, 58%)`);
-  }
-}
+    function buildRouteColorMap(routes){
+      ROUTE_COLOR_MAP = new Map();
+      for (let i = 0; i < routes.length; i++){
+        const r = String(routes[i]).trim();
 
-function routeColor(routeNo){
-  const r = String(routeNo ?? "").trim();
-  if (!r) return "#dc2626";
-  return ROUTE_COLOR_MAP.get(r) || "#dc2626";
-}
+        // Golden-angle spacing for distinct hues + small variation in lightness/sat
+        const hue = (i * 137.508) % 360;
+        const sat = [92, 96, 86][i % 3];
+        const light = [58, 48, 66][i % 3];
 
+        ROUTE_COLOR_MAP.set(r, `hsl(${hue.toFixed(0)}, ${sat}%, ${light}%)`);
+      }
+    }
+
+    function routeColor(routeNo){
+      const r = String(routeNo ?? "").trim();
+      if (!r) return "#dc2626";
+      return ROUTE_COLOR_MAP.get(r) || "#dc2626";
+    }
+
+    // ✅ Pin color mode (route vs common red)
+    function getPinColorMode(){
+      return (pinColorDD && pinColorDD.getValue()) || localStorage.getItem(PIN_COLOR_MODE_KEY) || "route";
+    }
+    function pinColorForStudent(student){
+      const mode = getPinColorMode();
+      if (mode === "red") return "#dc2626";
+      return routeColor(student.route_no);
+    }
 
     // ✅ Radius persistence
     function loadSavedRadius(){
@@ -1232,33 +1252,32 @@ function routeColor(routeNo){
     }
 
     function buildRouteOptions(){
-  const set = new Set();
-  for (const s of allStudents){
-    const v = (s.route_no ?? "").toString().trim();
-    if (v) set.add(v);
-  }
+      const set = new Set();
+      for (const s of allStudents){
+        const v = (s.route_no ?? "").toString().trim();
+        if (v) set.add(v);
+      }
 
-  const routes = [...set].sort((a,b)=>{
-    const na = Number(a), nb = Number(b);
-    const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
-    if (aNum && bNum) return na - nb;
-    if (aNum && !bNum) return -1;
-    if (!aNum && bNum) return 1;
-    return String(a).localeCompare(String(b));
-  });
+      const routes = [...set].sort((a,b)=>{
+        const na = Number(a), nb = Number(b);
+        const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+        if (aNum && bNum) return na - nb;
+        if (aNum && !bNum) return -1;
+        if (!aNum && bNum) return 1;
+        return String(a).localeCompare(String(b));
+      });
 
-  // ✅ build unique colors (no duplicates)
-  buildRouteColorMap(routes);
+      // ✅ build unique colors (no duplicates)
+      buildRouteColorMap(routes);
 
-  const opts = routes.map(r => ({
-    value: r,
-    label: `Route #${r}`,
-    color: routeColor(r)
-  }));
+      const opts = routes.map(r => ({
+        value: r,
+        label: `Route #${r}`,
+        color: routeColor(r)
+      }));
 
-  if (routeDD) routeDD.setOptions(opts);
-}
-
+      if (routeDD) routeDD.setOptions(opts);
+    }
 
     /***********************
      * SORTING (MVP always on top)
@@ -1473,12 +1492,8 @@ function routeColor(routeNo){
       }
       buildRouteOptions();
 
-      // Keep user inputs as-is (no forced reset)
+      // Keep user radius as-is (persisted)
       loadSavedRadius();
-
-      // Optional: keep sort/routes (do not force reset)
-      // if (sortDD) sortDD.setValue("distance");
-      // if (routeDD) routeDD.setValues([]);
     }
 
     /***********************
@@ -1501,7 +1516,9 @@ function routeColor(routeNo){
           const distTxt = Number.isFinite(dist) ? `${dist.toFixed(2)} km` : "-";
           const routeTxt = this.student.route_no ? `Route #${esc(this.student.route_no)}` : "Route -";
           const npsTxt = (this.student.nps_score == null || !Number.isFinite(this.student.nps_score)) ? "-" : String(this.student.nps_score);
-          const pinColor = routeColor(this.student.route_no);
+
+          // ✅ respects Pin Color dropdown
+          const pinColor = pinColorForStudent(this.student);
 
           div.innerHTML = `
             <div class="gm-popover">
@@ -1726,7 +1743,6 @@ function routeColor(routeNo){
       lastCenter = center;
       setCenterMarker(center);
 
-      // ✅ always use persisted radius value
       const radiusKm = parseRadiusKm(radiusInput.value);
       makeRadiusCircle(center, radiusKm);
 
@@ -1960,6 +1976,23 @@ function routeColor(routeNo){
           { value: "both", label: "NPS + Distance" },
         ],
         onChange: () => rerunCurrentMode()
+      });
+
+      // ✅ Pin Color dropdown
+      const savedPinMode = localStorage.getItem(PIN_COLOR_MODE_KEY) || "route";
+      pinColorDD = new CustomDropdown(document.getElementById("pinColorDropdown"), {
+        placeholder: "Pin Color",
+        value: savedPinMode,
+        widthPx: 190,
+        maxHeight: 160,
+        options: [
+          { value: "route", label: "Color As Per Route" },
+          { value: "red",   label: "Common Color (Red)" }
+        ],
+        onChange: (v) => {
+          localStorage.setItem(PIN_COLOR_MODE_KEY, v);
+          rerunCurrentMode(); // rebuild overlays with new colors
+        }
       });
 
       routeDD = new MultiSelectDropdown(document.getElementById("routeDropdown"), {
