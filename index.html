@@ -1674,32 +1674,38 @@
 
         card.setAttribute("data-idkey", s.idKey);
 
-        card.innerHTML = `
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-            isActive ? "bg-primary text-white shadow-lg shadow-blue-900/20"
-                     : "bg-white/5 text-white/70 group-hover:bg-white/10"
-          } text-xs font-black transition-colors">${esc(s.rank)}</div>
+card.innerHTML = `
+  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+    isActive ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+             : "bg-white/5 text-white/70 group-hover:bg-white/10"
+  } text-xs font-black transition-colors">${esc(s.rank)}</div>
 
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <p class="text-sm ${isActive ? "font-bold text-white" : "font-semibold text-white/90 group-hover:text-white"} truncate">${esc(s.name)}</p>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-sm ${isActive ? "font-bold text-white" : "font-semibold text-white/90 group-hover:text-white"} truncate">${esc(s.name)}</p>
 
-              <button class="mvpBtn material-symbols-outlined text-[18px] ${starFilled ? "text-yellow-400" : "text-yellow-400/40"}"
-                      data-action="mvp" data-idkey="${esc(s.idKey)}" title="Mark MVP"
-                      style="font-variation-settings:'FILL' ${starFilled ? 1 : 0}, 'wght' 700;">
-                star
-              </button>
-            </div>
+      <button class="mvpBtn material-symbols-outlined text-[18px] ${starFilled ? "text-yellow-400" : "text-yellow-400/40"}"
+              data-action="mvp" data-idkey="${esc(s.idKey)}" title="Mark MVP"
+              style="font-variation-settings:'FILL' ${starFilled ? 1 : 0}, 'wght' 700;">
+        star
+      </button>
+    </div>
 
-            <p class="text-xs text-white/55 truncate">
-              Class ${esc(s.class)} • ${s.route_no ? `Route #${esc(s.route_no)}` : "Route -"}
-            </p>
+    <p class="text-xs text-white/55 truncate">
+      Class ${esc(s.class)} • ${s.route_no ? `Route #${esc(s.route_no)}` : "Route -"}
+    </p>
 
-            <p class="text-[11px] text-white/45 mt-1 truncate">
-              NPS: ${esc(npsTxt)} • ${esc(distTxt)}
-            </p>
-          </div>
-        `;
+    <!-- ✅ Father name only (no label) -->
+    <p class="text-[11px] text-white/55 truncate">
+      ${esc(s.father || "-")}
+    </p>
+
+    <p class="text-[11px] text-white/45 mt-1 truncate">
+      NPS: ${esc(npsTxt)} • ${esc(distTxt)}
+    </p>
+  </div>
+`;
+
 
         listEl.appendChild(card);
       }
