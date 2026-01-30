@@ -89,33 +89,38 @@
       padding: 14px;
     }
 
-    /* Top Bar - grid prevents overlap */
+    /* Top Bar */
     .topbar{
       position:absolute;
       top:12px; left:12px; right:12px;
       z-index: 20;
       pointer-events:none;
     }
+
+    /* ✅ TWO-LINE HEADER (always) */
     .topbar-inner{
       pointer-events:auto;
-      display:grid;
-      grid-template-columns: auto minmax(280px, 1fr) auto;
+      display:flex;
+      flex-wrap:wrap;
       gap: 12px;
       align-items:center;
       padding: 10px;
-      border-radius: 999px;
+      border-radius: 18px;
     }
-    @media (max-width: 1100px){
-      .topbar-inner{
-        grid-template-columns: 1fr;
-        border-radius: 18px;
-      }
-      .top-left, .top-center, .top-right{
-        justify-content: center;
-      }
-      .top-right{
-        flex-wrap: wrap;
-      }
+    .top-left{ flex: 0 0 auto; }
+    .top-center{ flex: 1 1 520px; min-width: 260px; }
+    .top-right{
+      flex: 1 1 100%;            /* ✅ forces second line */
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      justify-content:flex-end;
+    }
+
+    @media (max-width: 900px){
+      .top-left, .top-right{ justify-content:center; }
+      .top-center{ min-width: 220px; }
+      .top-right{ justify-content:center; }
     }
 
     /* Search */
@@ -334,7 +339,6 @@
       overflow-y: auto;
       overflow-x: hidden;
     }
-    /* Custom scrollbar for dropdown */
     .options-menu::-webkit-scrollbar { width: 6px; }
     .options-menu::-webkit-scrollbar-track {
       background: rgba(0,0,0,0.1);
@@ -466,7 +470,7 @@
       <!-- TOP BAR -->
       <div class="topbar">
         <div class="glass-panel topbar-inner">
-          <!-- Left -->
+          <!-- Row 1 (Left + Search) -->
           <div class="top-left flex items-center gap-2 justify-start">
             <div class="badge">
               <div class="dot"></div>
@@ -475,9 +479,8 @@
             <button id="logoutBtn" class="logoutBtn" style="display:none;">Logout</button>
           </div>
 
-          <!-- Center -->
           <div class="top-center flex items-center justify-center min-w-0">
-            <div class="search-wrap w-full max-w-[520px]">
+            <div class="search-wrap w-full max-w-[720px]">
               <span class="material-symbols-outlined text-white/60 text-[18px]">search</span>
               <input id="searchInput" type="text" placeholder="Search map locations..." autocomplete="off" />
               <button id="clearBtn" class="btn" title="Clear pins">
@@ -487,14 +490,14 @@
             </div>
           </div>
 
-          <!-- Right -->
+          <!-- Row 2 (Controls) -->
           <div class="top-right flex items-center gap-2 justify-end">
             <div class="custom-select-container" id="sortDropdown"></div>
-
-            <!-- ✅ Pin Color dropdown -->
             <div class="custom-select-container" id="pinColorDropdown"></div>
-
             <div class="custom-select-container" id="routeDropdown"></div>
+
+            <!-- ✅ NEW: Class filter -->
+            <div class="custom-select-container" id="classDropdown"></div>
 
             <div class="miniPill">
               <span class="lbl">MAX</span>
@@ -606,8 +609,6 @@
       </div>
 
       <div id="list" class="list flex-1 space-y-2"></div>
-
-      <!-- ✅ Export button removed -->
     </aside>
   </div>
 
@@ -639,11 +640,7 @@
 
     const DEFAULT_CENTER = { lat: 27.6094, lng: 75.1399 };
     const MVP_STORE_KEY = "student_map_mvp_v2";
-
-    // ✅ Persist radius so it never “resets after inactivity”
     const RADIUS_STORE_KEY = "student_map_radius_v1";
-
-    // ✅ Pin color mode dropdown (route / red)
     const PIN_COLOR_MODE_KEY = "student_map_pin_color_mode_v1";
 
     const mvpSet = new Set(safeJsonParse(localStorage.getItem(MVP_STORE_KEY), []));
@@ -693,10 +690,11 @@
     const passToggle = document.getElementById("passToggle");
     const passIcon = document.getElementById("passIcon");
 
-    // Custom dropdown instances
+    // Dropdowns
     let sortDD = null;
-    let pinColorDD = null;  // ✅ NEW
+    let pinColorDD = null;
     let routeDD = null;
+    let classDD = null; // ✅ NEW
 
     /***********************
      * SAFE HELPERS
@@ -736,12 +734,9 @@
       ROUTE_COLOR_MAP = new Map();
       for (let i = 0; i < routes.length; i++){
         const r = String(routes[i]).trim();
-
-        // Golden-angle spacing for distinct hues + small variation in lightness/sat
         const hue = (i * 137.508) % 360;
         const sat = [92, 96, 86][i % 3];
         const light = [58, 48, 66][i % 3];
-
         ROUTE_COLOR_MAP.set(r, `hsl(${hue.toFixed(0)}, ${sat}%, ${light}%)`);
       }
     }
@@ -752,13 +747,33 @@
       return ROUTE_COLOR_MAP.get(r) || "#dc2626";
     }
 
-    // ✅ Pin color mode (route vs common red)
+    // ✅ Class colors (unique per class in current dataset)
+    let CLASS_COLOR_MAP = new Map();
+
+    function buildClassColorMap(classes){
+      CLASS_COLOR_MAP = new Map();
+      for (let i = 0; i < classes.length; i++){
+        const c = String(classes[i]).trim();
+        const hue = (i * 137.508) % 360;
+        const sat = [88, 94, 82][i % 3];
+        const light = [58, 50, 66][i % 3];
+        CLASS_COLOR_MAP.set(c, `hsl(${hue.toFixed(0)}, ${sat}%, ${light}%)`);
+      }
+    }
+
+    function classColor(cls){
+      const c = String(cls ?? "").trim();
+      if (!c) return "#3c83f6";
+      return CLASS_COLOR_MAP.get(c) || "#3c83f6";
+    }
+
     function getPinColorMode(){
       return (pinColorDD && pinColorDD.getValue()) || localStorage.getItem(PIN_COLOR_MODE_KEY) || "route";
     }
     function pinColorForStudent(student){
       const mode = getPinColorMode();
       if (mode === "red") return "#dc2626";
+      if (mode === "class") return classColor(student.class);
       return routeColor(student.route_no);
     }
 
@@ -987,7 +1002,7 @@
     }
 
     /***********************
-     * MULTI-SELECT DROPDOWN (routes)
+     * MULTI-SELECT DROPDOWN (routes/classes)
      ***********************/
     class MultiSelectDropdown {
       constructor(mountEl, { placeholder, options, values, onChange, widthPx, maxHeight = 320 }){
@@ -1107,7 +1122,7 @@
 
       syncTriggerText(){
         const arr = this.getValues();
-        this.triggerTextEl.textContent = arr.length === 0 ? this.placeholder : `Routes (${arr.length})`;
+        this.triggerTextEl.textContent = arr.length === 0 ? this.placeholder : `${this.placeholder.split(":")[0]} (${arr.length})`;
       }
 
       toggle(){ this.container.classList.toggle("open"); }
@@ -1244,6 +1259,7 @@
       allStudentsLoading = false;
 
       buildRouteOptions();
+      buildClassOptions(); // ✅ NEW
 
       setStatus(`Connected • ${allStudents.length} students`);
       sideSub.textContent = `${allStudents.length} students loaded`;
@@ -1267,7 +1283,6 @@
         return String(a).localeCompare(String(b));
       });
 
-      // ✅ build unique colors (no duplicates)
       buildRouteColorMap(routes);
 
       const opts = routes.map(r => ({
@@ -1277,6 +1292,35 @@
       }));
 
       if (routeDD) routeDD.setOptions(opts);
+    }
+
+    // ✅ NEW: Build Class dropdown options
+    function buildClassOptions(){
+      const set = new Set();
+      for (const s of allStudents){
+        const v = String(s.class ?? "").trim();
+        if (v) set.add(v);
+      }
+
+      const classes = [...set].sort((a,b)=>{
+        const na = Number(a), nb = Number(b);
+        const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+        if (aNum && bNum) return na - nb;
+        if (aNum && !bNum) return -1;
+        if (!aNum && bNum) return 1;
+        return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:"base" });
+      });
+
+      // ✅ Build stable class colors
+      buildClassColorMap(classes);
+
+      const opts = classes.map(c => ({
+        value: c,
+        label: `Class ${c}`,
+        color: classColor(c)
+      }));
+
+      if (classDD) classDD.setOptions(opts);
     }
 
     /***********************
@@ -1484,15 +1528,14 @@
       }
     }
 
-    // ✅ IMPORTANT: do NOT reset radius here anymore
     function refreshUI() {
       if (allStudentsReady) {
         renderSidebar([]);
         setStatus(`Connected • ${allStudents.length} students`);
       }
       buildRouteOptions();
+      buildClassOptions();
 
-      // Keep user radius as-is (persisted)
       loadSavedRadius();
     }
 
@@ -1517,7 +1560,6 @@
           const routeTxt = this.student.route_no ? `Route #${esc(this.student.route_no)}` : "Route -";
           const npsTxt = (this.student.nps_score == null || !Number.isFinite(this.student.nps_score)) ? "-" : String(this.student.nps_score);
 
-          // ✅ respects Pin Color dropdown
           const pinColor = pinColorForStudent(this.student);
 
           div.innerHTML = `
@@ -1637,23 +1679,31 @@
       listEl.innerHTML = "";
 
       const routeVals = routeDD ? routeDD.getValues() : [];
+      const classVals = classDD ? classDD.getValues() : [];
       const radiusKm = parseRadiusKm(radiusInput.value);
 
       if (!allStudentsReady){
         sideSub.textContent = "Loading…";
-      } else if (!lastCenter && routeVals.length === 0){
+      } else if (!lastCenter && routeVals.length === 0 && classVals.length === 0){
         sideSub.textContent = `${allStudents.length} students loaded`;
-      } else if (routeVals.length > 0){
-        sideSub.textContent = `Routes (${routeVals.length}) • Showing ${list.length} out of ${currentTotalInRange}`;
       } else {
-        const suffix = radiusKm > 0 ? `within ${radiusKm} km` : "all";
-        sideSub.textContent = `Showing ${list.length} out of ${currentTotalInRange} • ${suffix}`;
+        const parts = [];
+        if (routeVals.length) parts.push(`Routes (${routeVals.length})`);
+        if (classVals.length) parts.push(`Classes (${classVals.length})`);
+
+        const suffix = (routeVals.length || classVals.length)
+          ? `Showing ${list.length} out of ${currentTotalInRange}`
+          : `Showing ${list.length} out of ${currentTotalInRange} • ${radiusKm > 0 ? `within ${radiusKm} km` : "all"}`;
+
+        sideSub.textContent = `${parts.length ? parts.join(" • ") + " • " : ""}${suffix}`;
       }
 
       if (!list || list.length === 0){
         const empty = document.createElement("div");
         empty.className = "text-sm text-white/60 p-3";
-        empty.textContent = routeVals.length ? "No students for selected routes." : "Click on the map or search a place to see students.";
+        empty.textContent = (routeVals.length || classVals.length)
+          ? "No students for selected filters."
+          : "Click on the map or search a place to see students.";
         listEl.appendChild(empty);
         return;
       }
@@ -1674,38 +1724,37 @@
 
         card.setAttribute("data-idkey", s.idKey);
 
-card.innerHTML = `
-  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-    isActive ? "bg-primary text-white shadow-lg shadow-blue-900/20"
-             : "bg-white/5 text-white/70 group-hover:bg-white/10"
-  } text-xs font-black transition-colors">${esc(s.rank)}</div>
+        card.innerHTML = `
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+            isActive ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+                     : "bg-white/5 text-white/70 group-hover:bg-white/10"
+          } text-xs font-black transition-colors">${esc(s.rank)}</div>
 
-  <div class="flex-1 min-w-0">
-    <div class="flex items-center justify-between gap-2">
-      <p class="text-sm ${isActive ? "font-bold text-white" : "font-semibold text-white/90 group-hover:text-white"} truncate">${esc(s.name)}</p>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-sm ${isActive ? "font-bold text-white" : "font-semibold text-white/90 group-hover:text-white"} truncate">${esc(s.name)}</p>
 
-      <button class="mvpBtn material-symbols-outlined text-[18px] ${starFilled ? "text-yellow-400" : "text-yellow-400/40"}"
-              data-action="mvp" data-idkey="${esc(s.idKey)}" title="Mark MVP"
-              style="font-variation-settings:'FILL' ${starFilled ? 1 : 0}, 'wght' 700;">
-        star
-      </button>
-    </div>
+              <button class="mvpBtn material-symbols-outlined text-[18px] ${starFilled ? "text-yellow-400" : "text-yellow-400/40"}"
+                      data-action="mvp" data-idkey="${esc(s.idKey)}" title="Mark MVP"
+                      style="font-variation-settings:'FILL' ${starFilled ? 1 : 0}, 'wght' 700;">
+                star
+              </button>
+            </div>
 
-    <p class="text-xs text-white/55 truncate">
-      Class ${esc(s.class)} • ${s.route_no ? `Route #${esc(s.route_no)}` : "Route -"}
-    </p>
+            <p class="text-xs text-white/55 truncate">
+              Class ${esc(s.class)} • ${s.route_no ? `Route #${esc(s.route_no)}` : "Route -"}
+            </p>
 
-    <!-- ✅ Father name only (no label) -->
-    <p class="text-[11px] text-white/55 truncate">
-      ${esc(s.father || "-")}
-    </p>
+            <!-- ✅ Father name only -->
+            <p class="text-[11px] text-white/55 truncate">
+              ${esc(s.father || "-")}
+            </p>
 
-    <p class="text-[11px] text-white/45 mt-1 truncate">
-      NPS: ${esc(npsTxt)} • ${esc(distTxt)}
-    </p>
-  </div>
-`;
-
+            <p class="text-[11px] text-white/45 mt-1 truncate">
+              NPS: ${esc(npsTxt)} • ${esc(distTxt)}
+            </p>
+          </div>
+        `;
 
         listEl.appendChild(card);
       }
@@ -1735,12 +1784,74 @@ card.innerHTML = `
     /***********************
      * SEARCH MODES
      ***********************/
+    function getClassSet(){
+      const classVals = classDD ? classDD.getValues() : [];
+      const set = new Set(classVals.map(v => String(v).trim()));
+      return { classVals, classSet: set };
+    }
+
+    // ✅ NEW: Class Mode (ignores MAX and Radius)
+    function runClassMode(center){
+      if (!allStudentsReady) return;
+
+      const { classVals, classSet } = getClassSet();
+      if (!classVals.length){
+        const routeVals = routeDD ? routeDD.getValues() : [];
+        if (routeVals.length) return runRouteMode(center);
+        if (lastCenter) return runNearbyMode(center);
+        return;
+      }
+
+      lastCenter = center;
+      setCenterMarker(center);
+
+      // ignore radius circle
+      if (radiusCircle) radiusCircle.setMap(null);
+      radiusCircle = null;
+
+      const mode = sortMode();
+      const routeVals = routeDD ? routeDD.getValues() : [];
+      const routeSet = new Set(routeVals.map(v => String(v).trim()));
+
+      setStatus("Loading class…");
+
+      const filtered = [];
+      for (const s of allStudents){
+        const c = String(s.class || "").trim();
+        if (!classSet.has(c)) continue;
+
+        // If routes selected too: intersection
+        if (routeVals.length && !routeSet.has(String(s.route_no || "").trim())) continue;
+
+        const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
+        filtered.push({ ...s, dist_km: d });
+      }
+
+      currentTotalInRange = filtered.length;
+
+      sortWithMvp(filtered, mode);
+      for (let i=0;i<filtered.length;i++) filtered[i].rank = i+1;
+
+      currentResults = filtered;
+
+      setStats(computeStatsFromDistances(filtered.map(x => x.dist_km)));
+      buildOverlays(currentResults);
+      renderSidebar(currentResults);
+
+      setStatus(`Connected • ${allStudents.length} students`);
+    }
+
+    // ✅ UPDATED: Class filter gets priority
     function rerunCurrentMode(){
       const routeVals = routeDD ? routeDD.getValues() : [];
+      const { classVals } = getClassSet();
       const center = getActiveCenter();
-      if (routeVals.length) runRouteMode(center);
-      else if (lastCenter) runNearbyMode(center);
-      else renderSidebar(currentResults);
+
+      if (classVals.length) return runClassMode(center);
+      if (routeVals.length) return runRouteMode(center);
+      if (lastCenter) return runNearbyMode(center);
+
+      renderSidebar(currentResults);
     }
 
     function runNearbyMode(center){
@@ -1755,10 +1866,17 @@ card.innerHTML = `
       const maxN = Math.max(1, Math.min(2000, parseInt(maxInput.value || "50", 10)));
       const mode = sortMode();
 
+      const { classVals, classSet } = getClassSet();
+
       setStatus("Searching…");
 
       const withDist = [];
       for (const s of allStudents){
+        if (classVals.length){
+          const c = String(s.class || "").trim();
+          if (!classSet.has(c)) continue;
+        }
+
         const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
         if (radiusKm > 0 && d > radiusKm) continue;
         withDist.push({ ...s, dist_km: d });
@@ -1791,6 +1909,8 @@ card.innerHTML = `
       const routeVals = routeDD ? routeDD.getValues() : [];
       const mode = sortMode();
 
+      const { classVals, classSet } = getClassSet();
+
       if (!routeVals.length){
         runNearbyMode(center);
         return;
@@ -1803,6 +1923,12 @@ card.innerHTML = `
       const filtered = [];
       for (const s of allStudents){
         if (!routeSet.has(String(s.route_no || "").trim())) continue;
+
+        if (classVals.length){
+          const c = String(s.class || "").trim();
+          if (!classSet.has(c)) continue;
+        }
+
         const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
         filtered.push({ ...s, dist_km: d });
       }
@@ -1882,14 +2008,20 @@ card.innerHTML = `
         map.setZoom(15);
 
         const routeVals = routeDD.getValues();
-        if (routeVals.length) runRouteMode(center);
+        const { classVals } = getClassSet();
+
+        if (classVals.length) runClassMode(center);
+        else if (routeVals.length) runRouteMode(center);
         else runNearbyMode(center);
       });
 
       map.addListener("click", (e) => {
         const center = { lat: e.latLng.lat(), lng: e.latLng.lng() };
         const routeVals = routeDD.getValues();
-        if (routeVals.length) runRouteMode(center);
+        const { classVals } = getClassSet();
+
+        if (classVals.length) runClassMode(center);
+        else if (routeVals.length) runRouteMode(center);
         else runNearbyMode(center);
       });
 
@@ -1901,14 +2033,16 @@ card.innerHTML = `
       applyBtn.addEventListener("click", () => {
         const center = getActiveCenter();
         const routeVals = routeDD.getValues();
-        if (routeVals.length) runRouteMode(center);
-        else {
-          if (!lastCenter){
-            setStatus("Click map or search first");
-            return;
-          }
-          runNearbyMode(center);
+        const { classVals } = getClassSet();
+
+        if (classVals.length) return runClassMode(center);
+        if (routeVals.length) return runRouteMode(center);
+
+        if (!lastCenter){
+          setStatus("Click map or search first");
+          return;
         }
+        runNearbyMode(center);
       });
     }
 
@@ -1963,7 +2097,6 @@ card.innerHTML = `
      * START
      ***********************/
     (async () => {
-      // ✅ restore radius immediately and keep it saved
       loadSavedRadius();
       radiusInput.addEventListener("input", saveRadius);
       radiusInput.addEventListener("change", saveRadius);
@@ -1984,20 +2117,22 @@ card.innerHTML = `
         onChange: () => rerunCurrentMode()
       });
 
-      // ✅ Pin Color dropdown
       const savedPinMode = localStorage.getItem(PIN_COLOR_MODE_KEY) || "route";
+      const safePinMode = ["route", "red", "class"].includes(savedPinMode) ? savedPinMode : "route";
+
       pinColorDD = new CustomDropdown(document.getElementById("pinColorDropdown"), {
         placeholder: "Pin Color",
-        value: savedPinMode,
+        value: safePinMode,
         widthPx: 190,
-        maxHeight: 160,
+        maxHeight: 180,
         options: [
           { value: "route", label: "Color As Per Route" },
+          { value: "class", label: "Color As per Class" },
           { value: "red",   label: "Common Color (Red)" }
         ],
         onChange: (v) => {
           localStorage.setItem(PIN_COLOR_MODE_KEY, v);
-          rerunCurrentMode(); // rebuild overlays with new colors
+          rerunCurrentMode();
         }
       });
 
@@ -2007,21 +2142,22 @@ card.innerHTML = `
         widthPx: 160,
         maxHeight: 320,
         options: [],
-        onChange: () => {
-          const center = getActiveCenter();
-          const routeVals = routeDD.getValues();
-          if (routeVals.length) runRouteMode(center);
-          else {
-            if (lastCenter) runNearbyMode(center);
-            else clearState();
-          }
-        }
+        onChange: () => rerunCurrentMode()
+      });
+
+      // ✅ NEW: Class filter dropdown
+      classDD = new MultiSelectDropdown(document.getElementById("classDropdown"), {
+        placeholder: "Class: All",
+        values: [],
+        widthPx: 160,
+        maxHeight: 320,
+        options: [],
+        onChange: () => rerunCurrentMode()
       });
 
       await checkAuth();
 
       sb.auth.onAuthStateChange((event) => {
-        console.log('Auth state changed:', event);
         if (event === 'SIGNED_IN') setTimeout(() => checkAuth(), 100);
         else if (event === 'SIGNED_OUT') setTimeout(() => checkAuth(), 100);
         else if (event === 'USER_UPDATED') checkAuth();
