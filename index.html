@@ -1791,55 +1791,63 @@
     }
 
     // ✅ NEW: Class Mode (ignores MAX and Radius)
-    function runClassMode(center){
-      if (!allStudentsReady) return;
+    // ✅ UPDATED: Class Mode (respects Radius + MAX)
+function runClassMode(center){
+  if (!allStudentsReady) return;
 
-      const { classVals, classSet } = getClassSet();
-      if (!classVals.length){
-        const routeVals = routeDD ? routeDD.getValues() : [];
-        if (routeVals.length) return runRouteMode(center);
-        if (lastCenter) return runNearbyMode(center);
-        return;
-      }
+  const { classVals, classSet } = getClassSet();
+  if (!classVals.length){
+    const routeVals = routeDD ? routeDD.getValues() : [];
+    if (routeVals.length) return runRouteMode(center);
+    if (lastCenter) return runNearbyMode(center);
+    return;
+  }
 
-      lastCenter = center;
-      setCenterMarker(center);
+  lastCenter = center;
+  setCenterMarker(center);
 
-      // ignore radius circle
-      if (radiusCircle) radiusCircle.setMap(null);
-      radiusCircle = null;
+  // ✅ use radius in class mode
+  const radiusKm = parseRadiusKm(radiusInput.value);
+  makeRadiusCircle(center, radiusKm);
 
-      const mode = sortMode();
-      const routeVals = routeDD ? routeDD.getValues() : [];
-      const routeSet = new Set(routeVals.map(v => String(v).trim()));
+  // ✅ apply MAX too
+  const maxN = Math.max(1, Math.min(2000, parseInt(maxInput.value || "50", 10)));
+  const mode = sortMode();
 
-      setStatus("Loading class…");
+  const routeVals = routeDD ? routeDD.getValues() : [];
+  const routeSet = new Set(routeVals.map(v => String(v).trim()));
 
-      const filtered = [];
-      for (const s of allStudents){
-        const c = String(s.class || "").trim();
-        if (!classSet.has(c)) continue;
+  setStatus("Loading class…");
 
-        // If routes selected too: intersection
-        if (routeVals.length && !routeSet.has(String(s.route_no || "").trim())) continue;
+  const filtered = [];
+  for (const s of allStudents){
+    const c = String(s.class || "").trim();
+    if (!classSet.has(c)) continue;
 
-        const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
-        filtered.push({ ...s, dist_km: d });
-      }
+    // If routes selected too: intersection
+    if (routeVals.length && !routeSet.has(String(s.route_no || "").trim())) continue;
 
-      currentTotalInRange = filtered.length;
+    const d = haversineKm(center.lat, center.lng, s.lat, s.lng);
+    if (radiusKm > 0 && d > radiusKm) continue;
 
-      sortWithMvp(filtered, mode);
-      for (let i=0;i<filtered.length;i++) filtered[i].rank = i+1;
+    filtered.push({ ...s, dist_km: d });
+  }
 
-      currentResults = filtered;
+  currentTotalInRange = filtered.length;
 
-      setStats(computeStatsFromDistances(filtered.map(x => x.dist_km)));
-      buildOverlays(currentResults);
-      renderSidebar(currentResults);
+  sortWithMvp(filtered, mode);
 
-      setStatus(`Connected • ${allStudents.length} students`);
-    }
+  const sliced = filtered.slice(0, maxN);
+  for (let i=0;i<sliced.length;i++) sliced[i].rank = i+1;
+
+  currentResults = sliced;
+
+  setStats(computeStatsFromDistances(filtered.map(x => x.dist_km)));
+  buildOverlays(currentResults);
+  renderSidebar(currentResults);
+
+  setStatus(`Connected • ${allStudents.length} students`);
+}
 
     // ✅ UPDATED: Class filter gets priority
     function rerunCurrentMode(){
